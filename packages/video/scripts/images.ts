@@ -35,14 +35,10 @@ const errorText = async (res: Response) => {
 
 const callImages = async (model: string, prompt: string, size: Size): Promise<Buffer> => {
   const key = process.env.OPENAI_API_KEY!;
-  const dalle = model.startsWith("dall-e");
-  const body = dalle
-    ? { model, prompt, n: 1, size: size === "1024x1536" ? "1024x1792" : "1024x1024", quality: "standard", response_format: "b64_json" }
-    : { model, prompt, n: 1, size, quality: process.env.UTD_IMAGE_QUALITY ?? "medium", output_format: "png" };
   const res = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ model, prompt, n: 1, size, quality: process.env.UTD_IMAGE_QUALITY ?? "medium", output_format: "png" }),
   });
   if (!res.ok) throw new Error(`OpenAI images ${res.status} (${model}): ${await errorText(res)}`);
   const json = (await res.json()) as { data: { b64_json?: string; url?: string }[] };
@@ -55,19 +51,24 @@ const callImages = async (model: string, prompt: string, size: Size): Promise<Bu
   throw new Error("OpenAI images: empty response");
 };
 
-/** gpt-image-1 first (needs a verified OpenAI org); fall back to dall-e-3 when the account can't use it. */
+// Current GPT image models (gpt-image-1 and DALL·E were retired in 2026). First one the account can use wins.
+const MODEL_CHAIN = [process.env.UTD_IMAGE_MODEL, "gpt-image-2", "gpt-image-1.5", "gpt-image-1-mini"].filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
+
 const generate = async (prompt: string, size: Size): Promise<Buffer> => {
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not set — set it in the window that runs the app, then run Images again");
-  const preferred = process.env.UTD_IMAGE_MODEL ?? "gpt-image-1";
-  try {
-    return await callImages(preferred, prompt, size);
-  } catch (e) {
-    const msg = (e as Error).message;
-    const modelProblem = /verif|model_not_found|does not exist|not have access|invalid model|unsupported|Unknown parameter|output_format|must be verified/i.test(msg);
-    if (preferred.startsWith("dall-e") || !modelProblem) throw e;
-    log(`${preferred} unavailable on this account (${msg.slice(0, 120)}) → using dall-e-3`);
-    return callImages("dall-e-3", prompt, size);
+  let lastErr: Error | null = null;
+  for (const model of MODEL_CHAIN) {
+    try {
+      return await callImages(model, prompt, size);
+    } catch (e) {
+      lastErr = e as Error;
+      const msg = lastErr.message;
+      const modelProblem = /verif|model_not_found|does not exist|not have access|invalid model|unsupported model|must be verified|deprecated|retired/i.test(msg);
+      if (!modelProblem) throw e;
+      log(`${model} unavailable on this account → trying the next model`);
+    }
   }
+  throw lastErr ?? new Error("no image model available");
 };
 
 /** Try the prompt; if the model refuses (policy), retry once with people de-identified. */
@@ -189,6 +190,12 @@ const main = async () => {
     }
 
     if (sc.type === "board" && sc.card) {
+      if (!sc.card.prompt && /illustrative|pattern|tracking|note|disclaimer|example/i.test(`${sc.card.name} ${sc.card.sub ?? ""}`)) {
+        log(`scene ${i + 1}: card "${sc.card.name}" is a note, not a player — removed`);
+        delete sc.card;
+        save();
+        continue;
+      }
       const subject = sc.card.prompt ?? `${sc.card.name}${sc.card.sub ? ", " + sc.card.sub : ""}, footballer portrait`;
       const file = `assets/card-${String(i + 1).padStart(2, "0")}-${hashText(subject)}.png`;
       if (!flags.force && sc.card.img && fs.existsSync(path.join(dir, sc.card.img))) {

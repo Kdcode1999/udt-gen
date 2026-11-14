@@ -30,7 +30,7 @@ First render downloads Chrome Headless Shell (~100 MB) automatically. To use an 
 ```powershell
 $env:ELEVENLABS_API_KEY = "..."      # voice (ElevenLabs)
 $env:ANTHROPIC_API_KEY  = "..."      # Draft with AI (Claude + live web search)
-$env:OPENAI_API_KEY     = "..."      # Images (gpt-image-1 plates + ink-sketch cards)
+$env:OPENAI_API_KEY     = "..."      # Images (gpt-image-2 plates + ink-sketch cards)
 pnpm dev                              # → http://localhost:3000   — same window as the keys
 ```
 
