@@ -21,19 +21,30 @@ const STYLE: Record<Style, (subject: string) => string> = {
   photo: (s) => `Photorealistic editorial sports photograph: ${s}. Natural stadium light, shallow depth of field, 35mm, candid, high detail. ${NO_TEXT}`,
 };
 
-const generate = async (prompt: string, size: "1024x1536" | "1024x1024"): Promise<Buffer> => {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) throw new Error("OPENAI_API_KEY is not set — set it in the window that runs the app, then run Images again");
-  const model = process.env.UTD_IMAGE_MODEL ?? "gpt-image-1";
+type Size = "1024x1536" | "1024x1024";
+
+const errorText = async (res: Response) => {
+  const raw = (await res.text()).replace(/\s+/g, " ").trim();
+  try {
+    const j = JSON.parse(raw) as { error?: { message?: string; code?: string } };
+    return j.error?.message ?? raw.slice(0, 400);
+  } catch {
+    return raw.slice(0, 400);
+  }
+};
+
+const callImages = async (model: string, prompt: string, size: Size): Promise<Buffer> => {
+  const key = process.env.OPENAI_API_KEY!;
+  const dalle = model.startsWith("dall-e");
+  const body = dalle
+    ? { model, prompt, n: 1, size: size === "1024x1536" ? "1024x1792" : "1024x1024", quality: "standard", response_format: "b64_json" }
+    : { model, prompt, n: 1, size, quality: process.env.UTD_IMAGE_QUALITY ?? "medium", output_format: "png" };
   const res = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ model, prompt, n: 1, size, quality: process.env.UTD_IMAGE_QUALITY ?? "medium", output_format: "png" }),
+    body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const body = (await res.text()).slice(0, 400);
-    throw new Error(`OpenAI images ${res.status}: ${body}`);
-  }
+  if (!res.ok) throw new Error(`OpenAI images ${res.status} (${model}): ${await errorText(res)}`);
   const json = (await res.json()) as { data: { b64_json?: string; url?: string }[] };
   const d = json.data?.[0];
   if (d?.b64_json) return Buffer.from(d.b64_json, "base64");
@@ -44,8 +55,23 @@ const generate = async (prompt: string, size: "1024x1536" | "1024x1024"): Promis
   throw new Error("OpenAI images: empty response");
 };
 
+/** gpt-image-1 first (needs a verified OpenAI org); fall back to dall-e-3 when the account can't use it. */
+const generate = async (prompt: string, size: Size): Promise<Buffer> => {
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not set — set it in the window that runs the app, then run Images again");
+  const preferred = process.env.UTD_IMAGE_MODEL ?? "gpt-image-1";
+  try {
+    return await callImages(preferred, prompt, size);
+  } catch (e) {
+    const msg = (e as Error).message;
+    const modelProblem = /verif|model_not_found|does not exist|not have access|invalid model|unsupported|Unknown parameter|output_format|must be verified/i.test(msg);
+    if (preferred.startsWith("dall-e") || !modelProblem) throw e;
+    log(`${preferred} unavailable on this account (${msg.slice(0, 120)}) → using dall-e-3`);
+    return callImages("dall-e-3", prompt, size);
+  }
+};
+
 /** Try the prompt; if the model refuses (policy), retry once with people de-identified. */
-const generateSafe = async (subject: string, style: Style, size: "1024x1536" | "1024x1024"): Promise<{ png: Buffer; note?: string }> => {
+const generateSafe = async (subject: string, style: Style, size: Size): Promise<{ png: Buffer; note?: string }> => {
   try {
     return { png: await generate(STYLE[style](subject), size) };
   } catch (e) {
