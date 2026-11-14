@@ -179,20 +179,33 @@ export const Board: React.FC<{ scene: SceneOf<"board">; timed: TimedScene; brand
   const ballCur = k < 0 ? model.baseBall : model.ballAt[k];
   const ballPos = ballCur ? (ballPrev ? lerpPt(ballPrev, ballCur, move) : ballCur) : undefined;
 
-  const renderStep = (s: BoardStepT | undefined, idx: number, local: number, fade: number) => {
+  const renderStep = (s: BoardStepT | undefined, idx: number, local: number, fade: number, layer: "under" | "over" = "under") => {
     if (!s) return null;
     const els: React.ReactNode[] = [];
+    if (layer === "over") {
+      // zone label sits above the markers so a player can never cover it
+      if (s.zone?.label) {
+        const z = s.zone;
+        const t = pop(local, fps, 10);
+        const text = z.label.toUpperCase();
+        const w = text.length * 17 + 36;
+        els.push(
+          <g key="zoneLabel" opacity={fade * Math.min(1, t)} transform={`translate(${px(z.x)} ${py(z.y) - z.ry * 15.8 - 26}) scale(${0.8 + 0.2 * t})`}>
+            <rect x={-w / 2} y={-24} width={w} height={46} rx={12} fill="rgba(10,10,12,0.78)" stroke={brand.colors.gold} strokeWidth={2} />
+            <text x={0} y={9} textAnchor="middle" fontFamily={brand.fonts.body} fontWeight={900} fontSize={26} fill={brand.colors.gold} letterSpacing={2}>
+              {text}
+            </text>
+          </g>,
+        );
+      }
+      return <g key={`over${idx}`}>{els}</g>;
+    }
     if (s.zone) {
       const z = s.zone;
       const t = pop(local, fps, 6);
       els.push(
         <g key="zone" opacity={fade} transform={`translate(${px(z.x)} ${py(z.y)}) scale(${0.6 + 0.4 * t})`}>
           <ellipse cx={0} cy={0} rx={z.rx * 9.8} ry={z.ry * 15.8} fill="rgba(244,192,78,0.18)" stroke={brand.colors.gold} strokeWidth={4} strokeDasharray="12 10" />
-          {z.label && (
-            <text x={0} y={10} textAnchor="middle" fontFamily={brand.fonts.body} fontWeight={900} fontSize={28} fill={brand.colors.gold} style={{ paintOrder: "stroke" }} stroke="rgba(10,10,12,0.8)" strokeWidth={6} letterSpacing={2}>
-              {z.label.toUpperCase()}
-            </text>
-          )}
         </g>,
       );
     }
@@ -281,6 +294,8 @@ export const Board: React.FC<{ scene: SceneOf<"board">; timed: TimedScene; brand
               <circle r={6} cx={-4} cy={-4} fill="rgba(255,255,255,0.55)" />
             </g>
           )}
+          {k >= 1 && renderStep(steps[k - 1], k - 1, 999, 1 - ramp(lf, 0, 8), "over")}
+          {k >= 0 && renderStep(steps[k], k, lf, 1, "over")}
         </svg>
       </div>
 
