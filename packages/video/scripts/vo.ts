@@ -247,7 +247,7 @@ const main = async () => {
       entry = { duration: d, words: estimateWordTimes(text, d), text, hash, estimated: true };
     } else {
       log(`scene ${i + 1}/${script.scenes.length} → ${provider} (${text.length} chars)`);
-      const synth = provider === "elevenlabs" ? await elevenlabs(text, { voiceId, modelId, ...script.voice }) : await edge(text, voiceId);
+      const synth = provider === "elevenlabs" ? await elevenlabs(text, { ...script.voice, voiceId, modelId }) : await edge(text, voiceId);
       fs.writeFileSync(path.join(dir, file), synth.audio);
       const meta = await parseBuffer(synth.audio, { mimeType: "audio/mpeg" });
       const lastWord = synth.words.length ? synth.words[synth.words.length - 1].e : 0;
