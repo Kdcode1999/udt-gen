@@ -187,7 +187,7 @@ export const Board: React.FC<{ scene: SceneOf<"board">; timed: TimedScene; brand
       if (s.zone?.label) {
         const z = s.zone;
         const t = pop(local, fps, 10);
-        const text = z.label.toUpperCase();
+        const text = (z.label ?? "").toUpperCase();
         const w = text.length * 17 + 36;
         els.push(
           <g key="zoneLabel" opacity={fade * Math.min(1, t)} transform={`translate(${px(z.x)} ${py(z.y) - z.ry * 15.8 - 26}) scale(${0.8 + 0.2 * t})`}>
