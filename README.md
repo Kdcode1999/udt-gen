@@ -55,6 +55,17 @@ Flags: `pnpm vo <slug> --provider edge` (free Microsoft voice for drafts), `--fo
 
 Only scenes whose VO text changed get re-voiced, so fixing one line costs one API call.
 
+### Put it online (Railway, one container)
+
+The app, voice, images and renders all run in one container from the `Dockerfile`; `videos/` lives on a persistent volume.
+
+1. railway.com → **New Project → Deploy from GitHub repo** → `udt-gen`. Railway reads `railway.json` and builds the Dockerfile (first build ≈ 8 min: it downloads Chrome).
+2. Service → **Settings → Volumes → Add volume**, mount path `/data`.
+3. Service → **Variables**: `ELEVENLABS_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `UTD_PASSCODE` (any long phrase), optional `UTD_CONCURRENCY=2`.
+4. **Settings → Networking → Generate domain**. Open `https://<domain>/?key=<passcode>` once; the browser remembers it.
+
+Every push to `main` redeploys. A 60–90 s video renders in roughly 5–8 min on the default 2 vCPU; bump the plan or offload to Modal when that hurts.
+
 ### Cloud render (Modal)
 
 ```powershell

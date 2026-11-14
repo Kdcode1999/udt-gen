@@ -40,7 +40,7 @@ const main = async () => {
   const composition = await selectComposition({ serveUrl, id: "UTDVideo", inputProps, browserExecutable: browserExecutable() });
   log(`composition: ${composition.width}×${composition.height} @${composition.fps}fps, ${composition.durationInFrames} frames (${fmtSec(composition.durationInFrames / composition.fps)})`);
 
-  const concurrency = flags.concurrency ? Number(flags.concurrency) : undefined;
+  const concurrency = flags.concurrency ? Number(flags.concurrency) : process.env.UTD_CONCURRENCY ? Number(process.env.UTD_CONCURRENCY) : undefined;
   const common = {
     composition,
     serveUrl,
@@ -53,7 +53,7 @@ const main = async () => {
     jpegQuality: 90,
     browserExecutable: browserExecutable(),
     concurrency,
-    chromiumOptions: { gl: "angle" as const },
+    chromiumOptions: { gl: (process.env.UTD_GL as "angle" | "swangle" | undefined) ?? ("angle" as const) },
     overwrite: true,
   };
 
