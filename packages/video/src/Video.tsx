@@ -95,7 +95,6 @@ export const Video: React.FC<VideoProps> = ({ script, timeline }) => {
         return (
           <Sequence key={timed.index} from={timed.start} durationInFrames={timed.duration} name={`${String(timed.index + 1).padStart(2, "0")} ${scene.type}`}>
             <SceneSwitch scene={scene} timed={timed} brand={brand} />
-            {scene.type !== "cta" && <Tag brand={brand} series={script.series} />}
             {scene.captions !== false && <Captions brand={brand} words={timed.words} mode={capMode} y={script.captions?.y} />}
             {timed.audio && <Audio src={staticFile(timed.audio)} />}
             {sfxName && SFX[sfxName] && <Audio src={SFX[sfxName]} volume={0.5} />}
@@ -113,6 +112,20 @@ export const Video: React.FC<VideoProps> = ({ script, timeline }) => {
           </Sequence>
         );
       })}
+      {/* page tag once for the whole video (no re-entrance per scene); hidden on the CTA card */}
+      {timeline.scenes
+        .filter((s) => s.type !== "cta")
+        .reduce<{ start: number; end: number }[]>((spans, s) => {
+          const last = spans[spans.length - 1];
+          if (last && last.end === s.start) last.end = s.start + s.duration;
+          else spans.push({ start: s.start, end: s.start + s.duration });
+          return spans;
+        }, [])
+        .map((span, i) => (
+          <Sequence key={`tag${i}`} from={span.start} durationInFrames={span.end - span.start} name="page tag">
+            <Tag brand={brand} series={script.series} />
+          </Sequence>
+        ))}
       {musicSrc && <Audio src={musicSrc} loop volume={musicVolume} />}
       {script.debug && <SafeZone />}
     </AbsoluteFill>

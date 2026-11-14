@@ -98,7 +98,8 @@ const mergeTokens = (text: string, words: Word[]): Word[] => {
 const edgePython = async (text: string, voice: string): Promise<Synth> => {
   const { spawnSync } = await import("node:child_process");
   const os = await import("node:os");
-  const helper = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "edge_tts_helper.py");
+  const { fileURLToPath } = await import("node:url");
+  const helper = path.join(path.dirname(fileURLToPath(import.meta.url)), "edge_tts_helper.py");
   const tmp = path.join(os.tmpdir(), `utd-edge-${Date.now()}.mp3`);
   const candidates = process.platform === "win32" ? ["python", "py", "python3"] : ["python3", "python"];
   let lastErr = "";

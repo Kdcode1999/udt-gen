@@ -114,7 +114,9 @@ const main = async () => {
   // thumbnail: hook scene two-thirds in, else frame 20
   if (!flags["no-thumb"]) {
     const hook = timeline.scenes.find((s) => s.type === "hook") ?? timeline.scenes[0];
-    await renderStill({ ...common, frame: hook.start + Math.round(hook.duration * 0.66), output: path.join(outDir, "thumb.png"), imageFormat: "png" });
+    const { jpegQuality: _q, imageFormat: _f, codec: _c, audioCodec: _a, crf: _crf, pixelFormat: _p, concurrency: _n, ...stillOpts } = common;
+    await renderStill({ ...stillOpts, frame: hook.start + Math.round(hook.duration * 0.66), output: path.join(outDir, "thumb.png"), imageFormat: "png" });
+    log(`thumb → ${path.join(outDir, "thumb.png")}`);
   }
 
   log(`done. outputs in ${outDir}`);
