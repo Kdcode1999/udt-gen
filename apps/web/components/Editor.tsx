@@ -287,7 +287,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
               {typeof script.music?.src === "string" && script.music.src !== "placeholder" && <AssetPicker label="Track" slug={slug} kind="audio" value={script.music.src as string} assets={assets} onAssets={setAssets} onChange={(v) => setScript({ ...script, music: { ...(script.music ?? {}), src: v } })} hint="use Facebook Sound Collection tracks to stay licence-safe" />}
             </Section>
             <Section title="Pictures" right={<span className="text-xs text-[var(--muted)]">plans again, then paints everything</span>}>
-              <div className="text-sm text-[var(--muted)]">Throws away the pictures the system chose (keeps ones you typed yourself), plans a fresh varied set from the voice-over, and repaints them with current likenesses.</div>
+              <div className="text-sm text-[var(--muted)]">Throws away every picture choice, plans a fresh varied set from the voice-over, and repaints them with current likenesses. Use it after a script change or when a picture is wrong.</div>
               <button className="btn w-fit" disabled={busy} onClick={() => run("images", { force: true, replan: true })}>
                 Repaint all pictures
               </button>

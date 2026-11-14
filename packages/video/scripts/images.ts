@@ -17,7 +17,7 @@ const STYLE: Record<Style, (subject: string) => string> = {
   plate: (s) =>
     `Cinematic editorial illustration for a football analysis video: ${s}. Dark ink-black background, dramatic stadium floodlight glow, deep red and warm gold accents, painterly texture, moody and premium, vertical poster composition with the subject in the upper two thirds and the lower third darker. ${NO_TEXT}`,
   sketch: (s) =>
-    `Editorial ink sketch portrait: ${s}. Loose confident pen and ink crosshatching, high contrast black ink on warm cream paper, a single spot of deep red, head and shoulders, three-quarter view, newspaper illustration style. ${NO_TEXT}`,
+    `Editorial pen-and-ink illustration: ${s}. Loose confident crosshatching, high contrast black ink on warm cream paper, a single spot of deep red, newspaper illustration style; draw exactly the scene described. ${NO_TEXT}`,
   photo: (s) =>
     `Photorealistic press photograph from a football match-day, documentary style: ${s}. One clear subject, one real moment; natural stadium light, shallow depth of field, 35mm, candid, high detail, dark moody colour grade with deep reds. No symbolic props, no collage, no montage, no split frames. ${NO_TEXT}`,
 };
@@ -288,14 +288,17 @@ const main = async () => {
   // --replan: throw away what the system chose before (keeps anything a human typed) and plan again
   if (flags.replan) {
     for (const sc of script.scenes) {
-      if (sc.visuals) sc.visuals = sc.visuals.filter((v) => !v.auto);
-      if (sc.type === "hook" && sc.bgAuto) {
+      delete sc.visuals;
+      if (sc.type === "hook") {
         delete sc.bgPrompt;
         delete sc.bg;
         delete sc.bgPerson;
+        delete sc.bgAuto;
       }
+      if (sc.type === "image" && sc.style === "sketch") delete sc.style;
     }
     save();
+    log("replan: cleared every picture choice — planning again from the voice-over");
   }
   // plan voice-synced visuals for every eligible scene that has none — one pass, so the pictures vary
   const needPlan = script.scenes
@@ -398,7 +401,7 @@ const main = async () => {
         save();
         continue;
       }
-      const subject = sc.card.prompt ?? `${sc.card.name}${sc.card.sub ? ", " + sc.card.sub : ""}, footballer portrait`;
+      const subject = `head and shoulders portrait, three-quarter view: ${sc.card.prompt ?? `${sc.card.name}${sc.card.sub ? ", " + sc.card.sub : ""}, footballer`}`;
       const file = `assets/card-${String(i + 1).padStart(2, "0")}-${hashText(subject)}.png`;
       if (!flags.force && sc.card.img && fs.existsSync(path.join(dir, sc.card.img))) {
         skipped++;
