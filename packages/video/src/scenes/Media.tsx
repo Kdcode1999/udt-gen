@@ -62,11 +62,43 @@ const Headline: React.FC<{ brand: Brand; text?: string; label?: string }> = ({ b
 
 export const ImageScene: React.FC<{ scene: SceneOf<"image">; timed: TimedScene; brand: Brand }> = ({ scene, timed, brand }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const kb = scene.kenburns ?? "in";
   const t = interpolate(frame, [0, timed.duration], [0, 1], { extrapolateRight: "clamp" });
   const scale = kb === "in" ? 1 + 0.12 * t : kb === "out" ? 1.12 - 0.12 * t : 1.1;
   const x = kb === "left" ? -40 * t + 20 : kb === "right" ? 40 * t - 20 : 0;
   const fade = interpolate(frame, [0, 8], [0, 1], { extrapolateRight: "clamp" });
+  if (!scene.src) {
+    // no image yet: a designed plate, caption as the hero — never an empty frame
+    const s = settle(frame, fps, 6);
+    const text = scene.caption ?? "";
+    return (
+      <AbsoluteFill style={{ background: brand.colors.ink }}>
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(900px 1100px at 50% 42%, rgba(229,20,42,.42), transparent 70%)`, transform: `scale(${scale})` }} />
+        <div style={{ position: "absolute", left: 0, right: 0, top: 560, height: 6, background: `linear-gradient(90deg, transparent, ${brand.colors.gold}, transparent)`, opacity: 0.8 }} />
+        <div
+          style={{
+            position: "absolute",
+            left: SAFE.side,
+            right: SAFE.side,
+            top: 640,
+            fontFamily: brand.fonts.display,
+            fontSize: text.length > 40 ? 96 : text.length > 22 ? 120 : 150,
+            lineHeight: 0.95,
+            textTransform: "uppercase",
+            color: brand.colors.white,
+            textShadow: inkShadow,
+            opacity: s,
+            transform: `translateY(${(1 - s) * 40}px)`,
+            textWrap: "balance" as never,
+          }}
+        >
+          {text}
+        </div>
+        <SourceTag brand={brand} text={scene.source} />
+      </AbsoluteFill>
+    );
+  }
   return (
     <AbsoluteFill style={{ background: brand.colors.ink }}>
       <Img

@@ -245,7 +245,12 @@ export const BoardEditor: React.FC<{ slug: string; scene: Board; assets: AssetIn
         <Text label="Card sub" value={scene.card?.sub} onChange={(v) => scene.card && set({ card: { ...scene.card, sub: v } })} placeholder="VILLA · 1'" />
         <Select label="Side" value={scene.card?.side} onChange={(v) => scene.card && set({ card: { ...scene.card, side: v as "left" | "right" | undefined } })} options={[{ value: "left", label: "left" }, { value: "right", label: "right" }]} allowEmpty="left" className="w-28" />
       </div>
-      {scene.card && <AssetPicker label="Card image (sketch / AI plate)" slug={slug} kind="image" value={scene.card.img} assets={assets} onAssets={onAssets} onChange={(v) => scene.card && set({ card: { ...scene.card, img: v } })} />}
+      {scene.card && (
+        <>
+          <Text label="Card sketch: who to draw" value={scene.card.prompt} onChange={(v) => scene.card && set({ card: { ...scene.card, prompt: v } })} placeholder="e.g. Kobbie Mainoo, Manchester United midfielder, in the red home shirt" hint="Images button paints an ink sketch" />
+          <AssetPicker label="Card image" slug={slug} kind="image" value={scene.card.img} assets={assets} onAssets={onAssets} onChange={(v) => scene.card && set({ card: { ...scene.card, img: v } })} hint="empty = monogram card" />
+        </>
+      )}
 
       {/* steps */}
       <div className="grid gap-2">

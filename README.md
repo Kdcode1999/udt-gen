@@ -28,9 +28,13 @@ First render downloads Chrome Headless Shell (~100 MB) automatically. To use an 
 ## The UI (easiest)
 
 ```powershell
-$env:ELEVENLABS_API_KEY = "..."      # in the same PowerShell window
-pnpm dev                              # → http://localhost:3000
+$env:ELEVENLABS_API_KEY = "..."      # voice (ElevenLabs)
+$env:ANTHROPIC_API_KEY  = "..."      # Draft with AI (Claude + live web search)
+$env:OPENAI_API_KEY     = "..."      # Images (gpt-image-1 plates + ink-sketch cards)
+pnpm dev                              # → http://localhost:3000   — same window as the keys
 ```
+
+The header shows a chip per key (voice · images · ai draft). A draft writes an image `prompt` per image scene and per player card; **Images** paints them into `assets/` (runs automatically after a draft when the key is set). An image scene with no file renders as a caption plate, never a blank frame.
 
 Videos list → open one (or **New video**) → edit scenes in forms, upload images/clips, watch the live preview on the right → **Voice** → **Stills** → **Render** → **Download MP4**. Everything it writes goes to `videos/<slug>/`, the same files the CLI uses, so the two are interchangeable.
 The tactical board has a click-to-place pitch: select a player row, click the pitch; select a step, add moves/arrows/zones the same way.
@@ -41,6 +45,7 @@ The tactical board has a click-to-place pitch: select a player row, click the pi
 mkdir videos\my-video; copy videos\demo\script.json videos\my-video\script.json   # edit it
 pnpm still my-video                 # one PNG per scene → videos/my-video/out/stills  (approval gate)
 pnpm vo my-video                    # voice per scene + word timestamps → vo/manifest.json
+pnpm images my-video                # paints image scenes / card sketches from their prompts (OPENAI_API_KEY)
 pnpm render my-video                # → out/my-video.mp4 + captions.srt + vo-sheet.md + thumb.png
 pnpm studio my-video                # live preview in the browser, scrub any frame
 ```
@@ -80,7 +85,7 @@ Scene length = voice length + 0.45 s, never shorter than the type's floor.
 | `quote` | `text`, `who`, `source?`, `img?` | |
 | `compare` | `left{name,sub?}`, `right{…}`, `rows[{label,left,right,lowerIsBetter?,leftLabel?,rightLabel?}]`, `title?`, `source?` | bars grow outward, winner in gold |
 | `board` | `players[{id,team,x,y,name?,number?}]`, `steps[…]`, `title?`, `ball?`, `card?`, `homeColor?`, `awayColor?` | see below |
-| `image` | `src`, `caption?`, `source?`, `kenburns?` (`in\|out\|left\|right\|none`), `fit?` | |
+| `image` | `src` ("" until generated), `prompt?`, `style?` (`plate\|sketch\|photo`), `caption?`, `source?`, `kenburns?`, `fit?` | `pnpm images` fills `src` from `prompt` |
 | `footage` | `src`, `from?`, `to?` (seconds), `label?`, `caption?`, `muted?` (default true), `playbackRate?` | |
 | `cta` | `line?`, `sub?` | always last |
 

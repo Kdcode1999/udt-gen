@@ -94,7 +94,11 @@ export const SceneForm: React.FC<Props> = ({ slug, scene, assets, onAssets, onCh
 
         {scene.type === "image" && (
           <>
-            <AssetPicker label="Image" slug={slug} kind="image" value={scene.src} assets={assets} onAssets={onAssets} onChange={(v) => set("src", v ?? "")} />
+            <Area label="Generate: what should the picture show?" value={scene.prompt} onChange={(v) => set("prompt", v)} rows={2} placeholder="e.g. Old Trafford under floodlights in the rain, empty away end" hint="press Images (top right) to paint it; or upload your own below" />
+            <Row cols={3}>
+              <Select label="Style" value={scene.style} onChange={(v) => set("style", v)} options={[{ value: "plate", label: "cinematic plate" }, { value: "sketch", label: "ink sketch" }, { value: "photo", label: "photo-real" }]} allowEmpty="cinematic plate (default)" />
+            </Row>
+            <AssetPicker label="Image file" slug={slug} kind="image" value={scene.src} assets={assets} onAssets={onAssets} onChange={(v) => set("src", v ?? "")} hint="empty = renders a caption plate" />
             <Row>
               <Text label="Caption" value={scene.caption} onChange={(v) => set("caption", v)} placeholder="NO LEAGUE WIN SINCE AUGUST" />
               <Text label="Source" value={scene.source} onChange={(v) => set("source", v)} placeholder="Photo: …" />

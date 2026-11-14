@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isSlug, readScriptRaw, writeScript } from "@/lib/store";
-import { startAsyncJob } from "@/lib/jobs";
+import { runCli, startAsyncJob } from "@/lib/jobs";
 import { draftConfigured, draftModel, draftScript, writeResearch } from "@/lib/draft";
 
 export const dynamic = "force-dynamic";

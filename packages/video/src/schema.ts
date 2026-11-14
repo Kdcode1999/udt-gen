@@ -115,16 +115,21 @@ export const BoardScene = z.object({
       name: z.string(),
       sub: z.string().optional(),
       img: z.string().optional(), // sketch/AI plate; monogram card if omitted
+      prompt: z.string().optional(), // subject to sketch, e.g. "Jude Bellingham, Real Madrid midfielder"
       side: z.enum(["left", "right"]).optional(),
     })
     .optional(),
   steps: z.array(BoardStep).min(1),
 });
 
+export const ImageStyle = z.enum(["plate", "sketch", "photo"]);
+
 export const ImageScene = z.object({
   ...base,
   type: z.literal("image"),
-  src: z.string(),
+  src: z.string(), // "" = not yet generated/uploaded; the scene renders a designed caption plate until then
+  prompt: z.string().optional(), // what to generate (pnpm images / the Images button)
+  style: ImageStyle.optional(), // plate (default) | sketch | photo
   caption: z.string().optional(),
   source: z.string().optional(),
   kenburns: z.enum(["in", "out", "left", "right", "none"]).optional(),

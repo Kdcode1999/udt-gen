@@ -28,8 +28,8 @@ Scene types:
    players: [{id, team:"home"|"away", x:0-100, y:0-100, name?: SURNAME}] (home = Manchester United, defends the bottom goal y≈92; away attacks downward from y≈6; ids like h_gk,h_lb,h_lcb,h_rcb,h_rb,h_dm1,h_dm2,h_lw,h_am,h_rw,h_st and a_gk,a_lb,... ; 11 each; only name 3–5 key players),
    steps: [ { at?: seconds into scene (sync with the vo wording), label?: string, players?: {[id]:{x,y}} (moves), ball?: {x,y}, lines?: [{from:id,to:id}], arrows?: [{from: id|{x,y}, to: id|{x,y}, style:"pass"|"run"|"key"|"press", curve?: -1..1}], highlight?: id[], zone?: {x,y,rx,ry,label?}, zoom?: {x,y,scale:1-1.6} } ] (2–4 steps; step 1 usually just shape lines; the "key" arrow in the last step),
    vo }
- { type:"image", src: "", caption: string, source?: string, kenburns?: "in"|"out", vo }   // src left empty, caption says what picture to drop in
- { type:"footage", src: "", from?: 0, to?: 6, label?: string, caption: string, vo }        // avoid unless essential; never broadcast footage
+ { type:"image", src: "", prompt: string (what to paint: subject, setting, mood — 1–2 sentences, no text in the picture), style?: "plate"|"sketch"|"photo", caption: string (3–6 words, UPPERCASE), vo }   // the system generates the picture from prompt
+ { type:"footage", src: "", from?: 0, to?: 6, label?: string, caption: string, vo }        // only if the editor has a clip; never broadcast footage
  { type:"cta", line?: string, vo }
 Coordinates: x 0 = left touchline, 100 = right; y 0 = top goal line, 100 = bottom goal line. Keep players within y 8–88.
 `;
@@ -43,10 +43,10 @@ NON-NEGOTIABLE RULES
 4. The script must sound human: conviction, reasoning, short sentences, a point of view. No robotic readouts, no "in this video". Pace ≈ 2.4 words per second: total voice-over words ≈ target_seconds × 2.3. Each scene's vo is 1–3 sentences.
 5. Hook word: ONE word (two at most), uppercase, that creates curiosity rather than describes ("HIJACK?" not "BARGAIN"). Kicker = place · date when it is a match story.
 6. At most one gold stat card, for the single headline number.
-7. Prefer board, stat, compare and quote scenes. Use image/footage only if the story needs a visual, with src "" and a caption telling the editor what to drop in. Never rely on broadcast match footage.
+7. Mix the scene types for rhythm: boards for tactics, stat/compare for numbers, quote for voices, and image scenes for emotional or hero beats (the system paints them from your "prompt": a manager on the touchline, a stadium in the rain, a dressing room, a trophy, a player in motion — specific subject, setting, mood; style "sketch" for a portrait, "plate" for scenes, "photo" for realism). 1–3 image scenes per video is normal. Footage scenes only when the editor has a clip; never broadcast match footage.
 8. Every stat, compare and quote scene has a source ("Outlet · d Mon yyyy").
 9. Last scene is cta. First scene is hook. 6–10 scenes total.
-10. Tactical boards are illustrative: positions explain the pattern, they are not tracking data; say so ONLY in the research notes, never on screen. `card` is a player portrait card: use it only for one named key player (name = SURNAME, sub = club · minute or role); never for notes, disclaimers or titles; omit it when there is no single key player. Step labels are 1–3 words (e.g. "THE *GAP*", "SIX GO *MAN TO MAN*" is too long → "*MAN TO MAN*"). Sync step "at" seconds to where the vo mentions that beat (estimate from word position × 0.42 s).
+10. Tactical boards are illustrative: positions explain the pattern, they are not tracking data; say so ONLY in the research notes, never on screen. "card" is a player portrait card: use it only for one named key player (name = SURNAME, sub = club · minute or role); never for notes, disclaimers or titles; omit it when there is no single key player. Step labels are 1–3 words (e.g. "THE *GAP*", "SIX GO *MAN TO MAN*" is too long → "*MAN TO MAN*"). Sync step "at" seconds to where the vo mentions that beat (estimate from word position × 0.42 s).
 
 OUTPUT FORMAT (exactly two fenced blocks, nothing else after them):
 \`\`\`json

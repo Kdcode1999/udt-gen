@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createVideo, listVideos, writeScript } from "@/lib/store";
-import { startAsyncJob } from "@/lib/jobs";
+import { runCli, startAsyncJob } from "@/lib/jobs";
 import { draftConfigured, draftScript, writeResearch } from "@/lib/draft";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,12 @@ export async function POST(req: Request) {
         const { script, research } = await draftScript({ slug, title, brief: body.brief ?? "", lengthSec, series: body.series }, report);
         writeScript(slug, script);
         if (research) writeResearch(slug, research);
-        report(`draft saved: ${script.scenes.length} scenes — check the research notes before voicing`);
+        report(`draft saved: ${script.scenes.length} scenes`);
+        if (process.env.OPENAI_API_KEY && script.scenes.some((sc) => (sc.type === "image" && sc.prompt && !sc.src) || (sc.type === "board" && sc.card?.prompt && !sc.card.img))) {
+          report("generating images…");
+          await runCli(slug, "images", [], report);
+        }
+        report(`draft ready: ${script.scenes.length} scenes — check the research notes before voicing`);
       });
       return NextResponse.json({ slug, job });
     }

@@ -14,6 +14,7 @@
     "still": "pnpm --filter @utd/video still",
     "typecheck": "pnpm -r typecheck",
     "dev": "pnpm --filter @utd/web dev",
-    "build": "pnpm --filter @utd/web build"
+    "build": "pnpm --filter @utd/web build",
+    "images": "pnpm --filter @utd/video images"
   }
 }

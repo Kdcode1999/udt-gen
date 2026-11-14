@@ -132,7 +132,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
     return true;
   };
 
-  const run = async (kind: "vo" | "render" | "stills", body: Record<string, unknown> = {}) => {
+  const run = async (kind: "vo" | "render" | "stills" | "images", body: Record<string, unknown> = {}) => {
     if (dirty || !valid) {
       const ok = await save();
       if (!ok) return;
@@ -167,6 +167,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
   }, [vo, scenes]);
 
   const busy = job?.status === "running";
+  const imagesPending = scenes.some((sc) => (sc.type === "image" && sc.prompt && !sc.src) || (sc.type === "board" && sc.card?.prompt && !sc.card.img));
 
   return (
     <div className="grid grid-cols-[260px_minmax(0,1fr)_400px] h-[calc(100vh-3rem)]">
@@ -336,6 +337,9 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
           </button>
           <button className="btn" disabled={busy} onClick={() => run("vo")} title={voStale ? "voice is out of date with the script" : "voice is current"}>
             Voice{voStale ? " •" : ""}
+          </button>
+          <button className="btn" disabled={busy} onClick={() => run("images")} title="generate the pictures the script asks for">
+            Images{imagesPending ? " •" : ""}
           </button>
           <button className="btn" disabled={busy} onClick={() => run("stills")}>
             Stills
