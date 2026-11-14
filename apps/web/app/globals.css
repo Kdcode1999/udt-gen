@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #0a0a0c;
+  --surface: #141418;
+  --surface-2: #1c1c22;
+  --line: #2a2a32;
+  --fg: #f4f3f0;
+  --muted: #9b9aa3;
+  --red: #e5142a;
+  --gold: #f4c04e;
+}
+
+html, body { height: 100%; }
+body { background: var(--ink); color: var(--fg); font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+* { box-sizing: border-box; }
+input, textarea, select { background: var(--surface-2); border: 1px solid var(--line); color: var(--fg); border-radius: 6px; padding: 7px 10px; font-size: 14px; width: 100%; }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--gold); outline-offset: 0; border-color: transparent; }
+label { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: #3a3a44; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-red { background: var(--red); border-color: var(--red); color: white; }
+.btn-gold { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #2a2a32; border-radius: 4px; }

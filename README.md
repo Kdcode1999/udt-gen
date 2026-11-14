@@ -7,7 +7,7 @@ Built on [Remotion](https://www.remotion.dev) (React video): the same scene code
 packages/video   Remotion compositions + CLI (vo / render / still / studio)
 worker/          Modal render worker (cloud renders, phase 2 web app calls this)
 videos/<slug>/   one folder per video: script.json, assets/, vo/, out/
-apps/web         phase 2 — Next.js app (not started)
+apps/web         local web UI: scene editor, assets, live preview, Voice / Stills / Render buttons
 ```
 
 ## Setup (Windows, PowerShell 5)
@@ -25,7 +25,17 @@ $env:ELEVENLABS_VOICE_ID = "..."   # or put voiceId in script.json
 
 First render downloads Chrome Headless Shell (~100 MB) automatically. To use an existing Chrome instead: `$env:UTD_BROWSER = "C:\Program Files\Google\Chrome\Application\chrome.exe"`.
 
-## Make a video
+## The UI (easiest)
+
+```powershell
+$env:ELEVENLABS_API_KEY = "..."      # in the same PowerShell window
+pnpm dev                              # → http://localhost:3000
+```
+
+Videos list → open one (or **New video**) → edit scenes in forms, upload images/clips, watch the live preview on the right → **Voice** → **Stills** → **Render** → **Download MP4**. Everything it writes goes to `videos/<slug>/`, the same files the CLI uses, so the two are interchangeable.
+The tactical board has a click-to-place pitch: select a player row, click the pitch; select a step, add moves/arrows/zones the same way.
+
+## Make a video (CLI)
 
 ```powershell
 mkdir videos\my-video; copy videos\demo\script.json videos\my-video\script.json   # edit it
@@ -111,6 +121,6 @@ Arrows are smooth curves in pixel space; lines and arrows draw in one after anot
 ## Roadmap
 
 1. **Engine** (this) — scenes, voice, captions, CLI, Modal worker.
-2. **Hosted app** — Next.js on Vercel, Neon Postgres, Cloudflare R2, Remotion Player preview, render queue → Modal.
+2. **Hosted app** — the same UI deployed on Vercel with Neon Postgres + Cloudflare R2 for storage and renders queued to Modal (local version done; cloud storage swap next).
 3. **Distribution** — Reels Publishing API, caption drafts, Pexels/OpenAI image search in the editor, batch queue.
 4. **Analysis tie-in** — the freeze-frame CV engine as an `analysis` scene type.

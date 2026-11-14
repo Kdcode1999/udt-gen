@@ -2,8 +2,22 @@ import React from "react";
 import { AbsoluteFill, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig, Easing } from "remotion";
 import { SAFE, type Brand } from "../brand";
 
-/** Resolve an asset path from script.json: absolute URLs pass through, everything else is staticFile(). */
-export const asset = (p: string): string => (/^(https?:|data:|blob:)/.test(p) ? p : staticFile(p));
+/**
+ * Base URL for per-video files. Empty = Remotion's public dir (Studio / CLI render).
+ * The web app sets it (e.g. "/api/videos/demo/file") so the Player can load the same
+ * assets/ and vo/ paths through its own routes.
+ */
+let assetBase = "";
+export const setAssetBase = (base: string) => {
+  assetBase = base.replace(/\/$/, "");
+};
+
+/** Resolve an asset path from script.json: absolute URLs pass through, everything else is a video-dir file. */
+export const asset = (p: string): string => {
+  if (/^(https?:|data:|blob:)/.test(p)) return p;
+  if (assetBase) return `${assetBase}/${p.split("/").map(encodeURIComponent).join("/")}`;
+  return staticFile(p);
+};
 
 export const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 

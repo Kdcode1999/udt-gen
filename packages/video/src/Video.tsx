@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Audio, Sequence, interpolate, staticFile } from "remotion";
+import { AbsoluteFill, Audio, Sequence, interpolate } from "remotion";
 import "./fonts";
 import { getBrand, type Brand } from "./brand";
 import type { Scene, Script, VoManifest } from "./schema";
@@ -96,7 +96,7 @@ export const Video: React.FC<VideoProps> = ({ script, timeline }) => {
           <Sequence key={timed.index} from={timed.start} durationInFrames={timed.duration} name={`${String(timed.index + 1).padStart(2, "0")} ${scene.type}`}>
             <SceneSwitch scene={scene} timed={timed} brand={brand} />
             {scene.captions !== false && <Captions brand={brand} words={timed.words} mode={capMode} y={script.captions?.y} />}
-            {timed.audio && <Audio src={staticFile(timed.audio)} />}
+            {timed.audio && <Audio src={asset(timed.audio)} />}
             {sfxName && SFX[sfxName] && <Audio src={SFX[sfxName]} volume={0.5} />}
             {scene.type === "board" &&
               scene.steps.slice(1).map((_, i) => {

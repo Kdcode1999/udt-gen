@@ -10,3 +10,6 @@ videos/*/vo/*.wav
 .DS_Store
 Thumbs.db
 .remotion/
+.next/
+next-env.d.ts
+*.tsbuildinfo
