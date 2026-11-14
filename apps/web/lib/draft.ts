@@ -46,7 +46,7 @@ NON-NEGOTIABLE RULES
 7. Prefer board, stat, compare and quote scenes. Use image/footage only if the story needs a visual, with src "" and a caption telling the editor what to drop in. Never rely on broadcast match footage.
 8. Every stat, compare and quote scene has a source ("Outlet · d Mon yyyy").
 9. Last scene is cta. First scene is hook. 6–10 scenes total.
-10. Tactical boards are illustrative: positions explain the pattern, they are not tracking data; say so in the notes. Sync step "at" seconds to where the vo mentions that beat (estimate from word position × 0.42 s).
+10. Tactical boards are illustrative: positions explain the pattern, they are not tracking data; say so ONLY in the research notes, never on screen. `card` is a player portrait card: use it only for one named key player (name = SURNAME, sub = club · minute or role); never for notes, disclaimers or titles; omit it when there is no single key player. Step labels are 1–3 words (e.g. "THE *GAP*", "SIX GO *MAN TO MAN*" is too long → "*MAN TO MAN*"). Sync step "at" seconds to where the vo mentions that beat (estimate from word position × 0.42 s).
 
 OUTPUT FORMAT (exactly two fenced blocks, nothing else after them):
 \`\`\`json

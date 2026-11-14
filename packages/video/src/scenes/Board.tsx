@@ -93,9 +93,9 @@ const Arrow: React.FC<{ id: string; a: Pt; b: Pt; style: keyof typeof ARROW_STYL
   const st = ARROW_STYLE[style];
   // shorten so the head sits on the target edge rather than its centre
   const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
-  const trim = 38;
-  const b2 = { x: b.x - (dx / len) * trim, y: b.y - (dy / len) * trim };
-  const a2 = { x: a.x + (dx / len) * 34, y: a.y + (dy / len) * 34 };
+  const trimEnd = Math.min(38, len * 0.3), trimStart = Math.min(34, len * 0.25);
+  const b2 = { x: b.x - (dx / len) * trimEnd, y: b.y - (dy / len) * trimEnd };
+  const a2 = { x: a.x + (dx / len) * trimStart, y: a.y + (dy / len) * trimStart };
   const q = quad(a2, b2, curve);
   const headO = interpolate(progress, [0.82, 1], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const h = st.head;
@@ -220,11 +220,26 @@ export const Board: React.FC<{ scene: SceneOf<"board">; timed: TimedScene; brand
 
   const label = k < 0 ? (scene.title ? { text: scene.title, since: 0 } : null) : model.labelAt[k];
   const labelS = label ? pop(frame, fps, label.since + 3) : 0;
-  const labelSize = label ? (label.text.length > 18 ? 78 : label.text.length > 12 ? 96 : 118) : 0;
+  const labelSize = label ? (label.text.length > 22 ? 64 : label.text.length > 16 ? 78 : label.text.length > 11 ? 96 : 112) : 0;
+  // put the label where the fewest markers are at this step: top band, halfway line, or just above the captions
+  const labelTop = useMemo(() => {
+    const pos = k < 0 ? model.base : model.posAt[k];
+    const ys = Object.values(pos).map((p) => py(p.y));
+    const bands = [SAFE.top + 110, py(50) - 60, 1250];
+    const crowd = bands.map((b) => ys.filter((y) => Math.abs(y - (b + 50)) < 120).length + (b > 1200 ? 0.5 : 0));
+    let best = 0;
+    for (let i = 1; i < bands.length; i++) if (crowd[i] < crowd[best]) best = i;
+    return bands[best];
+  }, [k, model]);
 
   const card = scene.card;
   const cardS = settle(frame, fps, 6);
-  const cardLeft = (card?.side ?? "left") === "left";
+  const cardLeft = useMemo(() => {
+    if (card?.side) return card.side === "left";
+    // count markers under each candidate card rectangle (x 60–330 or 750–1020, y 440–830) at kick-off positions
+    const inRect = (x0: number, x1: number) => Object.values(model.base).filter((p) => px(p.x) > x0 - 30 && px(p.x) < x1 + 30 && py(p.y) > 410 && py(p.y) < 860).length;
+    return inRect(SAFE.side, SAFE.side + 270) <= inRect(SAFE.x1 - 270, SAFE.x1);
+  }, [card?.side, model.base]);
 
   return (
     <AbsoluteFill style={{ background: brand.colors.pitch, overflow: "hidden" }}>
@@ -280,20 +295,34 @@ export const Board: React.FC<{ scene: SceneOf<"board">; timed: TimedScene; brand
             position: "absolute",
             left: SAFE.side,
             right: SAFE.side,
-            top: SAFE.top + 96,
+            top: labelTop,
             textAlign: "center",
-            fontFamily: brand.fonts.display,
-            fontSize: labelSize,
-            lineHeight: 1,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-            color: brand.colors.white,
-            textShadow: inkShadow,
             opacity: Math.min(1, labelS),
             transform: `translateY(${(1 - labelS) * 30}px) scale(${0.9 + 0.1 * labelS})`,
           }}
         >
-          <Accent text={label.text} color={brand.colors.gold} />
+          <span
+            style={{
+              display: "inline-block",
+              padding: "14px 30px 10px",
+              borderRadius: 16,
+              background: "rgba(10,10,12,0.62)",
+              boxShadow: "0 10px 30px rgba(10,10,12,.35)",
+              fontFamily: brand.fonts.display,
+              fontSize: labelSize,
+              lineHeight: 1,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              color: brand.colors.white,
+              textShadow: inkShadow,
+              whiteSpace: "nowrap",
+              maxWidth: SAFE.x1 - SAFE.x0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            <Accent text={label.text} color={brand.colors.gold} />
+          </span>
         </div>
       )}
 
