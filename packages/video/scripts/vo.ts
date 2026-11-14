@@ -36,7 +36,13 @@ const elevenlabs = async (text: string, opts: { voiceId: string; modelId: string
       },
     }),
   });
-  if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 300);
+    if (res.status === 402 && body.includes("library voices")) {
+      throw new Error(`ElevenLabs: this voice is a Library voice, which the Free plan cannot use via the API.\n  Either pick a premade voice (run: pnpm vo --voices) or upgrade to Starter.`);
+    }
+    throw new Error(`ElevenLabs ${res.status}: ${body}`);
+  }
   const json = (await res.json()) as {
     audio_base64: string;
     alignment: { characters: string[]; character_start_times_seconds: number[]; character_end_times_seconds: number[] } | null;
@@ -174,11 +180,26 @@ const edgeNode = async (text: string, voice: string): Promise<Synth> => {
   return { audio, words: mergeTokens(text, words) };
 };
 
+// ---- list voices -------------------------------------------------------------
+const listVoices = async () => {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) throw new Error("ELEVENLABS_API_KEY is not set");
+  const res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": key } });
+  if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const { voices } = (await res.json()) as { voices: { voice_id: string; name: string; category: string; labels?: Record<string, string> }[] };
+  const rows = voices
+    .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
+    .map((v) => `${v.voice_id}  ${v.name.padEnd(14)} ${v.category.padEnd(12)} ${Object.values(v.labels ?? {}).join(" · ")}`);
+  console.log(`voice_id              name           category     labels\n${rows.join("\n")}`);
+  console.log("\nFree plan: only `premade` voices work through the API. Library/cloned voices need Starter or above.");
+};
+
 // ---- main -------------------------------------------------------------------
 const main = async () => {
   const { positional, flags } = parseArgs(process.argv.slice(2));
+  if (flags.voices) return listVoices();
   const slug = positional[0];
-  if (!slug) throw new Error("usage: pnpm vo <slug> [--provider elevenlabs|edge|estimate] [--voice id] [--force]");
+  if (!slug) throw new Error("usage: pnpm vo <slug> [--provider elevenlabs|edge|estimate] [--voice id] [--force]   |   pnpm vo --voices");
   const dir = videoDir(slug);
   const script = loadScript(dir);
   const previous = loadVo(dir);
@@ -245,5 +266,5 @@ const main = async () => {
 
 main().catch((e) => {
   console.error(e instanceof Error ? e.message : e);
-  process.exit(1);
+  process.exitCode = 1;
 });
