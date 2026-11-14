@@ -31,6 +31,7 @@ export const Preview = forwardRef<PlayerRef, PreviewProps>(function Preview({ sl
       compositionWidth={WIDTH}
       compositionHeight={HEIGHT}
       fps={FPS}
+      initialFrame={Math.min(20, Math.max(0, timeline.total - 1))}
       controls
       clickToPlay
       doubleClickToFullscreen
