@@ -82,7 +82,7 @@ export function Home({ videos }: { videos: VideoSummary[] }) {
       </section>
 
       {/* grid */}
-      <section className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+      <section id="videos" className="grid gap-5 scroll-mt-20" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
         <button className="new-card" onClick={() => setOpen(true)}>
           <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
