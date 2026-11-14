@@ -69,6 +69,11 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState("");
   const [showStills, setShowStills] = useState(false);
+  const [research, setResearch] = useState<string | null>(null);
+  const [showResearch, setShowResearch] = useState(false);
+  const [draftOk, setDraftOk] = useState(false);
+  const [brief, setBrief] = useState("");
+  const [lengthSec, setLengthSec] = useState(60);
   const player = useRef<PlayerRef>(null);
 
   const dirty = JSON.stringify(script) !== saved;
@@ -86,6 +91,9 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
     setVo(j.vo);
     setOutputs(j.outputs);
     setJob(j.job);
+    setResearch(j.research ?? null);
+    setDraftOk(!!j.draftConfigured);
+    return j as { script: AnyScript; job: Job | null };
   }, [slug]);
   useEffect(() => void refresh(), [refresh]);
 
@@ -130,6 +138,13 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
       if (!ok) return;
     }
     const r = await fetch(`/api/videos/${slug}/${kind}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) return say(j.error ?? "could not start");
+    setJob(j.job);
+  };
+
+  const startDraft = async () => {
+    const r = await fetch(`/api/videos/${slug}/draft`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ brief, lengthSec, title: script.title, series: script.series }) });
     const j = await r.json();
     if (!r.ok) return say(j.error ?? "could not start");
     setJob(j.job);
@@ -254,6 +269,19 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
               </Row>
               {typeof script.music?.src === "string" && script.music.src !== "placeholder" && <AssetPicker label="Track" slug={slug} kind="audio" value={script.music.src as string} assets={assets} onAssets={setAssets} onChange={(v) => setScript({ ...script, music: { ...(script.music ?? {}), src: v } })} hint="use Facebook Sound Collection tracks to stay licence-safe" />}
             </Section>
+            <Section title="Draft with AI" right={<span className="text-xs text-[var(--muted)]">{draftOk ? "Claude + live web search" : "set ANTHROPIC_API_KEY on this machine"}</span>}>
+              <textarea rows={4} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Brief: topic, angle, what you already know. This replaces the current scenes with a researched draft." disabled={!draftOk} />
+              <div className="flex items-center gap-2 flex-wrap">
+                {[45, 60, 90, 120].map((n) => (
+                  <button key={n} className={`btn !py-1 ${lengthSec === n ? "btn-gold" : ""}`} onClick={() => setLengthSec(n)} disabled={!draftOk}>
+                    {n}s
+                  </button>
+                ))}
+                <button className="btn btn-red ml-auto" disabled={!draftOk || busy} onClick={startDraft}>
+                  Research & redraft
+                </button>
+              </div>
+            </Section>
             {issues.length > 0 && (
               <Section title="Problems">
                 <ul className="text-sm text-[var(--red)] grid gap-1">
@@ -307,12 +335,28 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
         {voStale && !busy && <div className="text-xs text-[var(--muted)]">Voice lines changed since the last Voice run — the preview uses estimated timing until you run Voice again.</div>}
         <JobPanel
           job={job}
-          onFinished={(j) => {
+          onFinished={async (j) => {
             setJob(j);
-            void refresh();
+            const data = await refresh();
             if (j.kind === "stills") setShowStills(true);
+            if (j.kind === "draft" && j.status === "done" && data?.script) {
+              setScript(data.script);
+              setSaved(JSON.stringify(data.script));
+              setSelected(0);
+              setShowResearch(true);
+              say("Draft loaded — check the research notes");
+            }
           }}
         />
+        {research && (
+          <div className="card p-3 grid gap-2">
+            <button className="text-left text-xs uppercase tracking-wider text-[var(--muted)] flex items-center justify-between" onClick={() => setShowResearch((v) => !v)}>
+              <span>Research notes · verify before voicing</span>
+              <span>{showResearch ? "▾" : "▸"}</span>
+            </button>
+            {showResearch && <pre className="text-[12px] leading-relaxed whitespace-pre-wrap font-[inherit] max-h-[50vh] overflow-auto scrollbar-thin">{research}</pre>}
+          </div>
+        )}
         {outputs.mp4 && (
           <div className="card p-3 grid gap-2">
             <div className="text-xs uppercase tracking-wider text-[var(--muted)]">Last render {outputs.renderedAt ? `· ${new Date(outputs.renderedAt).toLocaleString()}` : ""}</div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Script } from "@utd/video/schema";
 import { isSlug, listAssets, listOutputs, readScriptRaw, readVo, writeScript } from "@/lib/store";
 import { latestJob } from "@/lib/jobs";
+import { draftConfigured, readResearch } from "@/lib/draft";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,8 @@ export async function GET(_req: Request, { params }: Ctx) {
     assets: listAssets(slug),
     outputs: listOutputs(slug),
     job: latestJob(slug),
+    research: readResearch(slug),
+    draftConfigured: draftConfigured(),
   });
 }
 

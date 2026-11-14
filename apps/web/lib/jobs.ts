@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PKG_DIR, videoDir } from "./store";
 
-export type JobKind = "vo" | "render" | "stills";
+export type JobKind = "vo" | "render" | "stills" | "draft";
 export type JobStatus = "running" | "done" | "failed";
 export type Job = {
   id: string;
@@ -18,6 +18,7 @@ export type Job = {
   message: string; // last meaningful log line
   logFile: string;
   exitCode?: number;
+  lines?: string[]; // in-process jobs log here instead of a file
 };
 
 type Registry = { jobs: Map<string, Job>; latest: Map<string, Job> };
@@ -30,6 +31,7 @@ export const latestJob = (slug: string) => reg.latest.get(slug) ?? null;
 export const isBusy = (slug: string) => latestJob(slug)?.status === "running";
 
 export const tailLog = (job: Job, lines = 40): string => {
+  if (job.lines) return job.lines.slice(-lines).join("\n");
   try {
     const txt = fs.readFileSync(job.logFile, "utf8");
     return txt
@@ -90,5 +92,31 @@ export const startJob = (slug: string, kind: JobKind, args: string[] = []): Job 
     job.endedAt = Date.now();
     log.end();
   });
+  return job;
+};
+
+/** In-process async job (no child process), e.g. AI drafting. */
+export const startAsyncJob = (slug: string, kind: JobKind, fn: (report: (m: string) => void) => Promise<void>): Job => {
+  if (isBusy(slug)) throw new Error("a job is already running for this video");
+  const id = `${kind}-${Date.now().toString(36)}`;
+  const job: Job = { id, slug, kind, status: "running", progress: 0, startedAt: Date.now(), message: "starting…", logFile: "", lines: [] };
+  reg.jobs.set(id, job);
+  reg.latest.set(slug, job);
+  const report = (m: string) => {
+    job.message = m;
+    job.lines!.push(`${new Date().toISOString().slice(11, 19)} ${m}`);
+  };
+  fn(report)
+    .then(() => {
+      job.status = "done";
+      job.progress = 1;
+      job.endedAt = Date.now();
+    })
+    .catch((e: Error) => {
+      job.status = "failed";
+      job.message = e.message;
+      job.lines!.push(`error: ${e.message}`);
+      job.endedAt = Date.now();
+    });
   return job;
 };
