@@ -363,6 +363,26 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
               setShowResearch(true);
               say("Draft loaded — check the research notes");
             }
+            if (j.kind === "images" && data?.script) {
+              // the generator wrote file paths (and inferred prompts/captions) into script.json: pull them in,
+              // keeping any unsaved edits to other fields
+              const disk = data.script;
+              setScript((cur) => {
+                const merged = {
+                  ...cur,
+                  scenes: (cur.scenes ?? []).map((sc, i) => {
+                    const d = disk.scenes?.[i];
+                    if (!d || d.type !== sc.type) return sc;
+                    if (sc.type === "image" && d.type === "image") return { ...sc, src: d.src || sc.src, prompt: sc.prompt ?? d.prompt, style: sc.style ?? d.style, caption: d.caption ?? sc.caption, source: sc.source ?? d.source };
+                    if (sc.type === "board" && d.type === "board") return { ...sc, card: d.card ? { ...(sc.card ?? d.card), img: d.card.img ?? sc.card?.img } : undefined };
+                    return sc;
+                  }),
+                };
+                setSaved((prev) => (prev === JSON.stringify(cur) ? JSON.stringify(merged) : prev));
+                return merged;
+              });
+              say(j.status === "done" ? "Pictures added to the preview" : "Images failed — see the log");
+            }
           }}
         />
         <div className="mx-auto w-full" style={{ maxWidth: "min(100%, calc((100vh - 330px) * 9 / 16))" }}>
