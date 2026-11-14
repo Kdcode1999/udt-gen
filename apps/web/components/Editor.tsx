@@ -236,6 +236,20 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
 
       {/* form */}
       <main className="overflow-y-auto scrollbar-thin p-4">
+        {job?.kind === "draft" && job.status === "running" && (
+          <div className="mb-4 card p-5 border-[var(--gold)] grid gap-2">
+            <div className="display text-3xl leading-none">
+              Researching &amp; writing<span className="text-[var(--gold)]">…</span>
+            </div>
+            <div className="text-sm text-[var(--muted)]">Claude is searching the web for the facts and drafting every scene. Usually 1–2 minutes. The scenes below get replaced when it finishes.</div>
+            <div className="text-sm">{job.message}</div>
+          </div>
+        )}
+        {job?.kind === "draft" && job.status === "failed" && (
+          <div className="mb-4 card p-4 border-[var(--red)] text-sm">
+            <b className="text-[var(--red)]">Draft failed:</b> {job.message}
+          </div>
+        )}
         {selected === "settings" ? (
           <div className="grid gap-4 max-w-3xl">
             <Section title="Video">
@@ -316,7 +330,6 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
 
       {/* preview + actions */}
       <aside className="border-l border-[var(--line)] overflow-y-auto scrollbar-thin p-3 flex flex-col gap-3">
-        <Preview ref={player} slug={slug} script={script} vo={vo} onTimeline={setTimeline} />
         <div className="flex flex-wrap gap-2">
           <button className={`btn ${dirty ? "btn-gold" : ""}`} disabled={saving || !dirty} onClick={save}>
             {saving ? "Saving…" : dirty ? "Save" : "Saved"}
@@ -348,6 +361,9 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
             }
           }}
         />
+        <div className="mx-auto w-full" style={{ maxWidth: "min(100%, calc((100vh - 330px) * 9 / 16))" }}>
+          <Preview ref={player} slug={slug} script={script} vo={vo} onTimeline={setTimeline} />
+        </div>
         {research && (
           <div className="card p-3 grid gap-2">
             <button className="text-left text-xs uppercase tracking-wider text-[var(--muted)] flex items-center justify-between" onClick={() => setShowResearch((v) => !v)}>

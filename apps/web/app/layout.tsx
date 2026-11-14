@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FONT_DATA } from "@utd/video/fonts";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Nav } from "@/components/Nav";
+import { KeyStatus } from "@/components/KeyStatus";
 import "./globals.css";
 
 export const metadata: Metadata = { title: "UTD Gen", description: "Script in, voiced vertical video out" };
@@ -28,9 +29,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             UTD <span className="text-[var(--red)]">GEN</span>
           </Link>
           <Nav />
-          <span className="ml-auto text-[11px] tracking-[.14em] uppercase text-[var(--muted)] flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[var(--gold)] shadow-[0_0_10px_var(--gold)]" />
-            local · videos/
+          <span className="ml-auto flex items-center gap-3">
+            <KeyStatus />
           </span>
           <ThemeToggle />
         </header>
