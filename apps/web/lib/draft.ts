@@ -19,9 +19,9 @@ Script = {
   scenes: Scene[]   // 6–10 scenes, first is hook, last is cta
 }
 Common optional fields on every scene: vo (string, the spoken line), hold (seconds), sfx ("whoosh"|"hit"|"tick"|"riser"|"none"),
-visuals?: [{ cue: string (a word that appears in this scene's vo, e.g. "Villa"), prompt: string (the picture for that moment: who, where, doing what, mood), style?: "photo"|"plate"|"sketch" }] — for stat, quote, compare and cta scenes: pictures that fade in behind the card the moment the cue word is spoken.
+visuals?: [{ cue: string (ONE word copied from this scene's vo, e.g. "Villa"), prompt: string (a real MOMENT as a press photo: who, where, what is happening, emotion — no portraits-by-default, no symbolism), style: "photo" (default; "plate" only for abstract beats), person: string|null (full name of the real person who must be recognisable, else null) }] — for stat, quote, compare and cta scenes: pictures that fade in behind the card the moment the cue word is spoken. Vary them across the video (faces, wide stadium, action, dugout, tunnel, fans); the same face at most twice per video.
 Scene types:
- { type:"hook", word: string (ONE word, max two, uppercase, curiosity not description, may end with ?), kicker?: string (place · date), sub?: string (one sentence), bgPrompt: string (the opening background picture: the main subject of the video — the named person, or the team as a group if it is about the team — setting and mood; the system adds their current look), vo }
+ { type:"hook", word: string (ONE word, max two, uppercase, curiosity not description, may end with ?), kicker?: string (place · date), sub?: string (one sentence), bgPrompt: string (the opening background picture as a press photo: the main subject of the video — the named person, or the team as a group if it is about the team — setting, moment, mood), bgPerson: string|null (that person's full name), vo }
  { type:"stat", value: number, label: string (UPPERCASE, e.g. "TACKLES · 24/25"), prefix?: "£", suffix?: "%", decimals?: 0|1, context?: string (one sentence above the card), gold?: boolean (ONLY the single headline stat), source: string, vo }
  { type:"quote", text: string (verbatim), who: string, source: string ("Outlet · d Mon yyyy"), vo }
  { type:"compare", title?: string (UPPERCASE), left:{name, sub?}, right:{name, sub?}, rows: [{label, left:number, right:number, lowerIsBetter?: boolean}] (2–5 rows), source: string, vo }
@@ -29,7 +29,7 @@ Scene types:
    players: [{id, team:"home"|"away", x:0-100, y:0-100, name?: SURNAME}] (home = Manchester United, defends the bottom goal y≈92; away attacks downward from y≈6; ids like h_gk,h_lb,h_lcb,h_rcb,h_rb,h_dm1,h_dm2,h_lw,h_am,h_rw,h_st and a_gk,a_lb,... ; 11 each; only name 3–5 key players),
    steps: [ { at?: seconds into scene (sync with the vo wording), label?: string, players?: {[id]:{x,y}} (moves), ball?: {x,y}, lines?: [{from:id,to:id}], arrows?: [{from: id|{x,y}, to: id|{x,y}, style:"pass"|"run"|"key"|"press", curve?: -1..1}], highlight?: id[], zone?: {x,y,rx,ry,label?}, zoom?: {x,y,scale:1-1.6} } ] (2–4 steps; step 1 usually just shape lines; the "key" arrow in the last step),
    vo }
- { type:"image", src: "", prompt: string (what to paint: subject, setting, mood — 1–2 sentences, no text in the picture), style?: "plate"|"sketch"|"photo", caption: string (3–6 words, UPPERCASE), vo }   // the system generates the picture from prompt
+ { type:"image", src: "", prompt: string (what to paint: subject, setting, moment, mood — 1–2 sentences, no text in the picture), person: string|null (full name if a real person must be recognisable), style?: "photo" (people/places) | "plate" (abstract) | "sketch", caption: string (3–6 words, UPPERCASE), vo }   // the system generates the picture from prompt
  { type:"footage", src: "", from?: 0, to?: 6, label?: string, caption: string, vo }        // only if the editor has a clip; never broadcast footage
  { type:"cta", line?: string, vo }
 Coordinates: x 0 = left touchline, 100 = right; y 0 = top goal line, 100 = bottom goal line. Keep players within y 8–88.

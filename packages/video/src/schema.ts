@@ -12,7 +12,9 @@ export const Visual = z.object({
   at: z.number().min(0).optional(), // or seconds into the scene (0 = from the start)
   prompt: z.string().optional(), // what to paint; the system adds the subject's current look
   style: z.enum(["plate", "sketch", "photo"]).optional(), // default photo
+  person: z.string().optional(), // the real person who must be recognisable (drives the current-look brief)
   src: z.string().optional(), // generated/uploaded file
+  auto: z.boolean().optional(), // proposed by the system (re-planned by Repaint)
 });
 export type VisualT = z.infer<typeof Visual>;
 
@@ -39,6 +41,8 @@ export const HookScene = z.object({
   sub: z.string().optional(),
   bg: z.string().optional(), // background picture of the subject (generated from bgPrompt or uploaded)
   bgPrompt: z.string().optional(), // who/what the video is about, as they look right now
+  bgPerson: z.string().optional(), // the real person who must be recognisable
+  bgAuto: z.boolean().optional(),
 });
 
 export const StatScene = z.object({
@@ -145,6 +149,7 @@ export const ImageScene = z.object({
   type: z.literal("image"),
   src: z.string(), // "" = not yet generated/uploaded; the scene renders a designed caption plate until then
   prompt: z.string().optional(), // what to generate (pnpm images / the Images button)
+  person: z.string().optional(), // the real person who must be recognisable
   style: ImageStyle.optional(), // plate (default) | sketch | photo
   caption: z.string().optional(),
   source: z.string().optional(),

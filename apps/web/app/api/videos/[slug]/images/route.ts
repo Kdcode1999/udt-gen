@@ -12,6 +12,7 @@ export async function POST(req: Request, { params }: Ctx) {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const args: string[] = [];
   if (body.force) args.push("--force");
+  if (body.replan) args.push("--replan");
   if (body.only) args.push("--only", String(body.only));
   if (body.style) args.push("--style", String(body.style));
   try {

@@ -8,7 +8,7 @@ import { asset } from "./ui";
 const norm = (s: string) => s.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase();
 
 /** Frame at which a visual should appear: its cue word in the voice-over, or its `at` time, or 0. */
-export const visualStart = (v: VisualT, words: TimedWord[], fps: number, index: number): number => {
+export const visualStart = (v: VisualT, words: TimedWord[], fps: number, index: number, total = 1, duration = 0): number => {
   if (v.at != null) return Math.round(v.at * fps);
   if (v.cue) {
     const cue = v.cue.split(/\s+/).map(norm).filter(Boolean);
@@ -16,7 +16,8 @@ export const visualStart = (v: VisualT, words: TimedWord[], fps: number, index: 
       if (cue.every((c, j) => norm(words[i + j].text).startsWith(c))) return Math.max(0, words[i].start - 6);
     }
   }
-  return index === 0 ? 0 : -1; // -1 = never
+  // cue not in the voice-over: still change pictures, evenly across the scene
+  return index === 0 ? 0 : Math.round((index * duration) / Math.max(1, total));
 };
 
 /**
@@ -26,7 +27,7 @@ export const visualStart = (v: VisualT, words: TimedWord[], fps: number, index: 
 export const Backdrop: React.FC<{ visuals: VisualT[]; words: TimedWord[]; duration: number; fps: number; brand: Brand; tint?: number }> = ({ visuals, words, duration, fps, brand, tint = 0.5 }) => {
   const frame = useCurrentFrame();
   const shots = useMemo(() => {
-    const starts = visuals.map((v, i) => visualStart(v, words, fps, i));
+    const starts = visuals.map((v, i) => visualStart(v, words, fps, i, visuals.length, duration));
     return visuals
       .map((v, i) => ({ v, start: starts[i], i }))
       .filter((s) => s.v.src && s.start >= 0)

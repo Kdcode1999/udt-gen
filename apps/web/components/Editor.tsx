@@ -286,6 +286,12 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
               </Row>
               {typeof script.music?.src === "string" && script.music.src !== "placeholder" && <AssetPicker label="Track" slug={slug} kind="audio" value={script.music.src as string} assets={assets} onAssets={setAssets} onChange={(v) => setScript({ ...script, music: { ...(script.music ?? {}), src: v } })} hint="use Facebook Sound Collection tracks to stay licence-safe" />}
             </Section>
+            <Section title="Pictures" right={<span className="text-xs text-[var(--muted)]">plans again, then paints everything</span>}>
+              <div className="text-sm text-[var(--muted)]">Throws away the pictures the system chose (keeps ones you typed yourself), plans a fresh varied set from the voice-over, and repaints them with current likenesses.</div>
+              <button className="btn w-fit" disabled={busy} onClick={() => run("images", { force: true, replan: true })}>
+                Repaint all pictures
+              </button>
+            </Section>
             <Section title="Draft with AI" right={<span className="text-xs text-[var(--muted)]">{draftOk ? "Claude + live web search" : "set ANTHROPIC_API_KEY on this machine"}</span>}>
               <textarea rows={4} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Brief: topic, angle, what you already know. This replaces the current scenes with a researched draft." disabled={!draftOk} />
               <div className="flex items-center gap-2 flex-wrap">
@@ -377,7 +383,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
                     if (!d || d.type !== sc.type) return sc;
                     const visuals = sc.visuals?.length ? sc.visuals.map((v, k) => ({ ...v, src: v.src ?? d.visuals?.[k]?.src })) : d.visuals;
                     sc = visuals ? ({ ...sc, visuals } as typeof sc) : sc;
-                    if (sc.type === "hook" && d.type === "hook") return { ...sc, bg: d.bg ?? sc.bg, bgPrompt: sc.bgPrompt ?? d.bgPrompt };
+                    if (sc.type === "hook" && d.type === "hook") return { ...sc, bg: d.bg ?? sc.bg, bgPrompt: sc.bgPrompt ?? d.bgPrompt, bgPerson: sc.bgPerson ?? d.bgPerson, bgAuto: d.bgAuto };
                     if (sc.type === "image" && d.type === "image") return { ...sc, src: d.src || sc.src, prompt: sc.prompt ?? d.prompt, style: sc.style ?? d.style, caption: d.caption ?? sc.caption, source: sc.source ?? d.source };
                     if (sc.type === "board" && d.type === "board") return { ...sc, card: d.card ? { ...(sc.card ?? d.card), img: d.card.img ?? sc.card?.img } : undefined };
                     return sc;

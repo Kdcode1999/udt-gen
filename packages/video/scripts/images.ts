@@ -1,9 +1,9 @@
-// pnpm images <slug> [--force] [--only 3,5] [--style plate|sketch|photo]
+// pnpm images <slug> [--force] [--replan] [--only 3,5] [--style plate|sketch|photo]
 //
 // Generates the pictures a script asks for and writes them into videos/<slug>/assets/:
 //   image scenes with `prompt` and no `src`      → assets/gen-<n>-<hash>.png  (portrait 1024×1536)
 //   board scenes whose card has `prompt`, no img → assets/card-<n>-<hash>.png (square 1024×1024, ink sketch)
-// script.json is updated with the file paths. Needs OPENAI_API_KEY (model via UTD_IMAGE_MODEL, default gpt-image-1).
+// script.json is updated with the file paths. Needs OPENAI_API_KEY (model via UTD_IMAGE_MODEL, default gpt-image-2).
 import fs from "node:fs";
 import path from "node:path";
 import type { Script } from "../src/schema";
@@ -18,8 +18,13 @@ const STYLE: Record<Style, (subject: string) => string> = {
     `Cinematic editorial illustration for a football analysis video: ${s}. Dark ink-black background, dramatic stadium floodlight glow, deep red and warm gold accents, painterly texture, moody and premium, vertical poster composition with the subject in the upper two thirds and the lower third darker. ${NO_TEXT}`,
   sketch: (s) =>
     `Editorial ink sketch portrait: ${s}. Loose confident pen and ink crosshatching, high contrast black ink on warm cream paper, a single spot of deep red, head and shoulders, three-quarter view, newspaper illustration style. ${NO_TEXT}`,
-  photo: (s) => `Photorealistic editorial sports photograph: ${s}. Natural stadium light, shallow depth of field, 35mm, candid, high detail, dark moody grading with deep reds. ${NO_TEXT}`,
+  photo: (s) =>
+    `Photorealistic press photograph from a football match-day, documentary style: ${s}. One clear subject, one real moment; natural stadium light, shallow depth of field, 35mm, candid, high detail, dark moody colour grade with deep reds. No symbolic props, no collage, no montage, no split frames. ${NO_TEXT}`,
 };
+
+/** Likeness line for a named real person: the picture is about THEM, not a generic figure. */
+const identity = (person: string | undefined, brief: string | null) =>
+  person ? `The person is ${person} — an accurate, recognisable likeness of the real ${person}${brief ? ` (${brief})` : ""}, not a generic lookalike. ` : "";
 
 type Size = "1024x1536" | "1024x1024";
 
@@ -173,8 +178,8 @@ const claudeText = async (system: string, user: string, tools: boolean, maxToken
 const NAME_RE = /\b([A-Z][\p{L}'’-]+(?:\s+(?:de|da|van|von|di|le|el|al)\s+)?(?:\s+[A-Z][\p{L}'’-]+){1,2})\b/u;
 const TEAM_RE = /\b(Manchester United|Man United|Man Utd|United|Liverpool|Arsenal|Chelsea|Manchester City|Man City|Tottenham|Spurs|Aston Villa|Newcastle|Everton|Real Madrid|Barcelona|Bayern|PSG|Juventus|Inter|AC Milan)\b/;
 
-const appearanceBrief = async (subject: string, dir: string): Promise<string | null> => {
-  const who = subject.match(NAME_RE)?.[1] ?? subject.match(TEAM_RE)?.[1];
+const appearanceBrief = async (subject: string, dir: string, person?: string): Promise<string | null> => {
+  const who = person ?? subject.match(NAME_RE)?.[1] ?? subject.match(TEAM_RE)?.[1];
   if (!who) return null;
   const cachePath = path.join(dir, "assets", "appearance.json");
   const cache: AppearanceCache = fs.existsSync(cachePath) ? JSON.parse(fs.readFileSync(cachePath, "utf8")) : {};
@@ -193,15 +198,16 @@ const appearanceBrief = async (subject: string, dir: string): Promise<string | n
   return brief;
 };
 
-const withCurrency = async (subject: string, dir: string): Promise<string> => {
-  const brief = await appearanceBrief(subject, dir);
+const withCurrency = async (subject: string, dir: string, person?: string): Promise<string> => {
+  const brief = await appearanceBrief(subject, dir, person);
+  if (person) return `${identity(person, brief)}${subject}`;
   return brief ? `${subject}. Current appearance (${new Date().toISOString().slice(0, 7)}): ${brief}` : subject;
 };
 
 /** Who or what is this video about? For the hook background. */
-const inferHookSubject = async (script: Script, research: string): Promise<string | null> =>
+const inferHookSubject = async (script: Script, research: string): Promise<{ prompt: string; person?: string } | null> =>
   claudeText(
-    'Reply with JSON only: {"prompt": string}. prompt = one or two sentences briefing an illustrator for the opening background picture of a football video: the single main subject (a named person, or the team as a group if the story is about the team), the setting, the mood. No text or logos in the picture.',
+    'Reply with JSON only: {"prompt": string, "person": string|null}. prompt = one or two sentences briefing a press photographer for the opening background picture of a football video: the single main subject (the named person the story is about, or the team as a group if it is about the team), the setting, the mood; a real moment, no symbolism, no text or logos. person = that person\'s full name, or null when it is the team.',
     `Title: ${script.title}\nVoice-over:\n${script.scenes.map((s, i) => `${i + 1}. ${"vo" in s && s.vo ? s.vo : ""}`).join("\n")}\n${research ? `Research notes:\n${research.slice(0, 2000)}` : ""}`,
     false,
     300,
@@ -209,33 +215,58 @@ const inferHookSubject = async (script: Script, research: string): Promise<strin
     const m = t?.match(/\{[\s\S]*\}/);
     if (!m) return null;
     try {
-      return (JSON.parse(m[0]) as { prompt?: string }).prompt ?? null;
+      const o = JSON.parse(m[0]) as { prompt?: string; person?: string | null };
+      return o.prompt ? { prompt: o.prompt, person: o.person ?? undefined } : null;
     } catch {
       return null;
     }
   });
 
-/** Propose voice-synced visuals for a stat / quote / compare / cta scene that has none. */
-const inferVisuals = async (script: Script, i: number, research: string): Promise<{ cue: string; prompt: string; style?: Style }[]> => {
-  const sc = script.scenes[i];
-  const vo = "vo" in sc ? sc.vo : undefined;
-  if (!vo) return [];
+/** One planning pass for the whole video: varied, photo-real moment pictures, cue words copied from the voice-over. */
+type Planned = { cue: string; prompt: string; style?: Style; person?: string };
+const planVisuals = async (script: Script, research: string, targets: number[]): Promise<Record<number, Planned[]>> => {
+  if (!targets.length) return {};
+  const already = script.scenes
+    .map((sc, i) => (sc.type === "hook" ? `hook background: ${sc.bgPrompt ?? ""}` : sc.type === "image" ? `scene ${i + 1} image: ${sc.prompt ?? sc.caption ?? ""}` : ""))
+    .filter(Boolean)
+    .join("\n");
   const text = await claudeText(
-    'Reply with JSON only: {"visuals": [{"cue": string, "prompt": string, "style": "photo"|"plate"|"sketch"}]}. You pick 1–3 background pictures for a scene of a Manchester United short video. Each visual fires when its cue word is spoken: cue MUST be a single word copied exactly from the voice-over (an opponent, a player, a place, a moment). prompt = that specific moment as a picture (who, where, doing what, mood; named people are fine; no text or logos). The first visual uses the first word of the voice-over so the scene never starts bare. If the voice-over names nothing visual, return one atmospheric visual with the first word as cue.',
-    `Video: ${script.title}\nScene ${i + 1} (${sc.type}) voice-over: ${vo}\n${research ? `Research notes:\n${research.slice(0, 1500)}` : ""}`,
+    `You are the picture editor of a Manchester United short-video page. For each listed scene choose 1–3 background pictures that fire while the voice-over is spoken. Reply with JSON only:
+{"scenes": {"<sceneNumber>": [{"cue": string, "prompt": string, "style": "photo"|"plate", "person": string|null}]}}
+Rules:
+- cue: ONE word copied exactly from that scene's voice-over (an opponent, a player, a place, a moment). The first visual of a scene uses the first word of the voice-over so the scene never starts bare.
+- prompt: a specific real MOMENT as a press photograph — who, where, what is happening, emotion. E.g. cue "Villa" → "Aston Villa players piling on the scorer in front of the away end at Old Trafford while two Manchester United defenders stand with hands on hips". Not a portrait, not symbolism (no clocks, hourglasses, chess, storms), no montages.
+- VARIETY across the whole video: no two pictures with the same concept; mix close faces, wide stadium shots, action, dugout, tunnel, fans, dressing room, training ground. Do not repeat the pictures already planned (listed below). The same person's face at most twice in the whole video.
+- style: "photo" for anything with people or places; "plate" only for abstract beats.
+- person: the real person who must be recognisable in the picture (full name), or null. If the scene is about a person (a quote by them, their stats), one of its visuals should show THEM, clearly identified in "person".
+- Only facts consistent with the research notes; never invent trophies, injuries or kits.`,
+    `Video: ${script.title}${script.series ? ` (${script.series})` : ""}
+Already planned pictures:
+${already || "(none)"}
+
+Scenes needing visuals:
+${targets.map((i) => `scene ${i + 1} (${script.scenes[i].type}) voice-over: ${"vo" in script.scenes[i] ? script.scenes[i].vo : ""}`).join("\n")}
+
+${research ? `Research notes:\n${research.slice(0, 3000)}` : ""}`,
     false,
-    600,
+    2500,
   );
   const m = text?.match(/\{[\s\S]*\}/);
-  if (!m) return [];
+  if (!m) return {};
   try {
-    const out = JSON.parse(m[0]) as { visuals?: { cue?: string; prompt?: string; style?: string }[] };
-    return (out.visuals ?? [])
-      .filter((v) => v.cue && v.prompt)
-      .slice(0, 3)
-      .map((v) => ({ cue: v.cue!, prompt: v.prompt!, style: (["plate", "sketch", "photo"] as Style[]).includes(v.style as Style) ? (v.style as Style) : undefined }));
+    const out = JSON.parse(m[0]) as { scenes?: Record<string, { cue?: string; prompt?: string; style?: string; person?: string | null }[]> };
+    const res: Record<number, Planned[]> = {};
+    for (const [k, list] of Object.entries(out.scenes ?? {})) {
+      const idx = Number(k) - 1;
+      if (!targets.includes(idx) || !Array.isArray(list)) continue;
+      res[idx] = list
+        .filter((v) => v.cue && v.prompt)
+        .slice(0, 3)
+        .map((v) => ({ cue: v.cue!, prompt: v.prompt!, style: v.style === "plate" ? "plate" : "photo", person: v.person ?? undefined }));
+    }
+    return res;
   } catch {
-    return [];
+    return {};
   }
 };
 
@@ -254,19 +285,36 @@ const main = async () => {
   const researchPath = path.join(dir, "research.md");
   const research = fs.existsSync(researchPath) ? fs.readFileSync(researchPath, "utf8") : "";
 
+  // --replan: throw away what the system chose before (keeps anything a human typed) and plan again
+  if (flags.replan) {
+    for (const sc of script.scenes) {
+      if (sc.visuals) sc.visuals = sc.visuals.filter((v) => !v.auto);
+      if (sc.type === "hook" && sc.bgAuto) {
+        delete sc.bgPrompt;
+        delete sc.bg;
+        delete sc.bgPerson;
+      }
+    }
+    save();
+  }
+  // plan voice-synced visuals for every eligible scene that has none — one pass, so the pictures vary
+  const needPlan = script.scenes
+    .map((sc, i) => ((sc.type === "stat" || sc.type === "quote" || sc.type === "compare" || sc.type === "cta") && !sc.visuals?.length && sc.vo && (!only || only.includes(i)) ? i : -1))
+    .filter((i) => i >= 0);
+  if (needPlan.length) {
+    log(`planning pictures for ${needPlan.length} scene(s)…`);
+    const plan = await planVisuals(script, research, needPlan);
+    for (const [k, list] of Object.entries(plan)) {
+      if (list.length) script.scenes[Number(k)].visuals = list.map((v) => ({ ...v, auto: true }));
+    }
+    save();
+  }
+
   for (let i = 0; i < script.scenes.length; i++) {
     const sc = script.scenes[i];
     if (only && !only.includes(i)) continue;
 
-    // voice-synced visuals (stat / quote / compare / cta): propose them when the script has none
-    if ((sc.type === "stat" || sc.type === "quote" || sc.type === "compare" || sc.type === "cta") && !sc.visuals?.length && sc.vo) {
-      log(`scene ${i + 1}: choosing pictures for the voice-over…`);
-      const proposed = await inferVisuals(script, i, research);
-      if (proposed.length) {
-        sc.visuals = proposed;
-        save();
-      }
-    }
+    // voice-synced visuals (stat / quote / compare / cta)
     if (sc.visuals?.length) {
       for (let v = 0; v < sc.visuals.length; v++) {
         const vis = sc.visuals[v];
@@ -277,9 +325,9 @@ const main = async () => {
         const subject = vis.prompt ?? vis.cue;
         if (!subject) continue;
         const style = forceStyle ?? vis.style ?? "photo";
-        const file = `assets/vis-${String(i + 1).padStart(2, "0")}-${v + 1}-${hashText(style + subject)}.png`;
+        const file = `assets/vis-${String(i + 1).padStart(2, "0")}-${v + 1}-${hashText(style + subject + (vis.person ?? ""))}.png`;
         log(`scene ${i + 1} visual ${v + 1} (${vis.cue ?? vis.at ?? "start"}): ${subject.slice(0, 70)}…`);
-        const { png } = await generateSafe(await withCurrency(subject, dir), style, "1024x1536");
+        const { png } = await generateSafe(await withCurrency(subject, dir, vis.person), style, "1024x1536");
         fs.writeFileSync(path.join(dir, file), png);
         vis.src = file;
         made++;
@@ -294,10 +342,13 @@ const main = async () => {
       }
       if (!sc.bgPrompt) {
         log(`scene ${i + 1}: working out the opening picture from the story…`);
-        sc.bgPrompt = (await inferHookSubject(script, research)) ?? `${script.title}, the main subject of the story`;
+        const inferred = await inferHookSubject(script, research);
+        sc.bgPrompt = inferred?.prompt ?? `${script.title}, the main subject of the story`;
+        sc.bgPerson = inferred?.person;
+        sc.bgAuto = true;
         save();
       }
-      const subject = await withCurrency(sc.bgPrompt, dir);
+      const subject = await withCurrency(sc.bgPrompt, dir, sc.bgPerson);
       const file = `assets/hook-${hashText(subject)}.png`;
       log(`scene ${i + 1}: hook background — ${sc.bgPrompt.slice(0, 80)}…`);
       const { png } = await generateSafe(subject, forceStyle ?? "photo", "1024x1536");
@@ -329,10 +380,10 @@ const main = async () => {
         log(`scene ${i + 1}: image has no prompt, caption or voice line — skipped`);
         continue;
       }
-      const style = forceStyle ?? sc.style ?? "plate";
-      const file = `assets/gen-${String(i + 1).padStart(2, "0")}-${hashText(style + subject)}.png`;
+      const style = forceStyle ?? sc.style ?? (sc.person ? "photo" : "plate");
+      const file = `assets/gen-${String(i + 1).padStart(2, "0")}-${hashText(style + subject + (sc.person ?? ""))}.png`;
       log(`scene ${i + 1}: ${style} — ${subject.slice(0, 80)}…`);
-      const { png, note } = await generateSafe(await withCurrency(subject, dir), style, "1024x1536");
+      const { png, note } = await generateSafe(await withCurrency(subject, dir, sc.person), style, "1024x1536");
       fs.writeFileSync(path.join(dir, file), png);
       sc.src = file;
       if (!sc.source) sc.source = `AI illustration${note ? " · " + note : ""}`;
@@ -354,7 +405,7 @@ const main = async () => {
         continue;
       }
       log(`scene ${i + 1}: card sketch — ${subject.slice(0, 80)}`);
-      const { png } = await generateSafe(await withCurrency(subject, dir), "sketch", "1024x1024");
+      const { png } = await generateSafe(await withCurrency(subject, dir, sc.card.name.split(/\s+/).length >= 2 ? sc.card.name : undefined), "sketch", "1024x1024");
       fs.writeFileSync(path.join(dir, file), png);
       sc.card.img = file;
       made++;
