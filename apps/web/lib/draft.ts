@@ -20,7 +20,7 @@ Script = {
 }
 Common optional fields on every scene: vo (string, the spoken line), hold (seconds), sfx ("whoosh"|"hit"|"tick"|"riser"|"none").
 Scene types:
- { type:"hook", word: string (ONE word, max two, uppercase, curiosity not description, may end with ?), kicker?: string (place · date), sub?: string (one sentence), vo }
+ { type:"hook", word: string (ONE word, max two, uppercase, curiosity not description, may end with ?), kicker?: string (place · date), sub?: string (one sentence), bgPrompt: string (the opening background picture: the main subject of the video — the named person, or the team as a group if it is about the team — setting and mood; the system adds their current look), vo }
  { type:"stat", value: number, label: string (UPPERCASE, e.g. "TACKLES · 24/25"), prefix?: "£", suffix?: "%", decimals?: 0|1, context?: string (one sentence above the card), gold?: boolean (ONLY the single headline stat), source: string, vo }
  { type:"quote", text: string (verbatim), who: string, source: string ("Outlet · d Mon yyyy"), vo }
  { type:"compare", title?: string (UPPERCASE), left:{name, sub?}, right:{name, sub?}, rows: [{label, left:number, right:number, lowerIsBetter?: boolean}] (2–5 rows), source: string, vo }

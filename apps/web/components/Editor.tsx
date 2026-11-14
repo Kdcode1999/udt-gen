@@ -167,7 +167,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
   }, [vo, scenes]);
 
   const busy = job?.status === "running";
-  const imagesPending = scenes.some((sc) => (sc.type === "image" && !sc.src && (sc.prompt || sc.caption)) || (sc.type === "board" && sc.card && !sc.card.img));
+  const imagesPending = scenes.some((sc) => (sc.type === "hook" && !sc.bg) || (sc.type === "image" && !sc.src && (sc.prompt || sc.caption)) || (sc.type === "board" && sc.card && !sc.card.img));
 
   return (
     <div className="grid grid-cols-[260px_minmax(0,1fr)_400px] h-[calc(100vh-3rem)]">
@@ -373,6 +373,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
                   scenes: (cur.scenes ?? []).map((sc, i) => {
                     const d = disk.scenes?.[i];
                     if (!d || d.type !== sc.type) return sc;
+                    if (sc.type === "hook" && d.type === "hook") return { ...sc, bg: d.bg ?? sc.bg, bgPrompt: sc.bgPrompt ?? d.bgPrompt };
                     if (sc.type === "image" && d.type === "image") return { ...sc, src: d.src || sc.src, prompt: sc.prompt ?? d.prompt, style: sc.style ?? d.style, caption: d.caption ?? sc.caption, source: sc.source ?? d.source };
                     if (sc.type === "board" && d.type === "board") return { ...sc, card: d.card ? { ...(sc.card ?? d.card), img: d.card.img ?? sc.card?.img } : undefined };
                     return sc;

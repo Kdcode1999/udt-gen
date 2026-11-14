@@ -1,8 +1,8 @@
 import React from "react";
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { SAFE, type Brand } from "../brand";
 import type { SceneOf } from "../schema";
-import { Glow, pop, ramp, settle } from "../components/ui";
+import { asset, Glow, inkShadow, pop, ramp, settle } from "../components/ui";
 
 const wordSize = (w: string) => (w.length <= 5 ? 320 : w.length <= 7 ? 270 : w.length <= 9 ? 220 : w.length <= 12 ? 170 : 130);
 
@@ -15,9 +15,20 @@ export const Hook: React.FC<{ scene: SceneOf<"hook">; brand: Brand }> = ({ scene
   const kick = settle(frame, fps, 0);
   const shake = frame > 4 && frame < 9 ? (frame % 2 ? 6 : -6) : 0;
 
+  const bgScale = 1.04 + interpolate(frame, [0, 150], [0, 0.08], { extrapolateRight: "clamp" });
+  const bgFade = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
+  const hasBg = !!scene.bg;
   return (
     <AbsoluteFill style={{ background: brand.colors.ink }}>
-      <Glow brand={brand} y={880} />
+      {hasBg && (
+        <>
+          <Img src={asset(scene.bg!)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 20%", transform: `scale(${bgScale})`, opacity: bgFade }} />
+          {/* keep the word readable: tint, side vignette and a heavy lower band */}
+          <div style={{ position: "absolute", inset: 0, background: "rgba(10,10,12,0.42)" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(10,10,12,.55) 0%, rgba(10,10,12,0) 28%, rgba(10,10,12,0) 42%, rgba(10,10,12,.88) 68%, rgba(10,10,12,.96) 100%)" }} />
+        </>
+      )}
+      <Glow brand={brand} y={880} strength={hasBg ? 0.3 : 0.42} />
       <div style={{ position: "absolute", left: SAFE.side, right: SAFE.side, top: 640, transform: `translateX(${shake}px)` }}>
         {scene.kicker && (
           <div
@@ -44,6 +55,7 @@ export const Hook: React.FC<{ scene: SceneOf<"hook">; brand: Brand }> = ({ scene
             letterSpacing: -3,
             textTransform: "uppercase",
             color: brand.colors.white,
+            textShadow: hasBg ? inkShadow : undefined,
             opacity: Math.min(1, slam * 1.5),
             transform: `translateY(${(1 - slam) * 90}px) scale(${0.9 + 0.1 * slam})`,
             transformOrigin: "left center",
@@ -62,6 +74,7 @@ export const Hook: React.FC<{ scene: SceneOf<"hook">; brand: Brand }> = ({ scene
               fontSize: 60,
               lineHeight: 1.15,
               color: brand.colors.white,
+              textShadow: hasBg ? "0 2px 12px rgba(10,10,12,.9)" : undefined,
               opacity: sub,
               transform: `translateY(${(1 - sub) * 30}px)`,
               maxWidth: 900,

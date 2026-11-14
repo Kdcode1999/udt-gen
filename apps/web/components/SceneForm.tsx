@@ -29,6 +29,8 @@ export const SceneForm: React.FC<Props> = ({ slug, scene, assets, onAssets, onCh
               <Text label="Kicker" value={scene.kicker} onChange={(v) => set("kicker", v)} placeholder="OLD TRAFFORD · 8 NOV 2026" />
             </Row>
             <Text label="Sub line" value={scene.sub} onChange={(v) => set("sub", v)} placeholder="One sentence that sets up the story." />
+            <Area label="Background picture: who or what is this about?" value={scene.bgPrompt} onChange={(v) => set("bgPrompt", v)} rows={2} placeholder="Leave empty and the system works it out from the story" hint="Images paints it with their current look" />
+            <AssetPicker label="Background file" slug={slug} kind="image" value={scene.bg} assets={assets} onAssets={onAssets} onChange={(v) => set("bg", v)} hint="empty = ink + red glow" />
           </>
         )}
 

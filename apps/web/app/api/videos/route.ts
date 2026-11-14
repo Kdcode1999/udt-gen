@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         writeScript(slug, script);
         if (research) writeResearch(slug, research);
         report(`draft saved: ${script.scenes.length} scenes`);
-        if (process.env.OPENAI_API_KEY && script.scenes.some((sc) => (sc.type === "image" && sc.prompt && !sc.src) || (sc.type === "board" && sc.card?.prompt && !sc.card.img))) {
+        if (process.env.OPENAI_API_KEY && script.scenes.some((sc) => sc.type === "hook" || (sc.type === "image" && !sc.src) || (sc.type === "board" && sc.card && !sc.card.img))) {
           report("generating images…");
           await runCli(slug, "images", [], report);
         }

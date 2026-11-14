@@ -18,7 +18,7 @@ const STYLE: Record<Style, (subject: string) => string> = {
     `Cinematic editorial illustration for a football analysis video: ${s}. Dark ink-black background, dramatic stadium floodlight glow, deep red and warm gold accents, painterly texture, moody and premium, vertical poster composition with the subject in the upper two thirds and the lower third darker. ${NO_TEXT}`,
   sketch: (s) =>
     `Editorial ink sketch portrait: ${s}. Loose confident pen and ink crosshatching, high contrast black ink on warm cream paper, a single spot of deep red, head and shoulders, three-quarter view, newspaper illustration style. ${NO_TEXT}`,
-  photo: (s) => `Photorealistic editorial sports photograph: ${s}. Natural stadium light, shallow depth of field, 35mm, candid, high detail. ${NO_TEXT}`,
+  photo: (s) => `Photorealistic editorial sports photograph: ${s}. Natural stadium light, shallow depth of field, 35mm, candid, high detail, dark moody grading with deep reds. ${NO_TEXT}`,
 };
 
 type Size = "1024x1536" | "1024x1024";
@@ -138,6 +138,83 @@ ${research ? `Research notes (facts to stay consistent with):\n${research.slice(
   }
 };
 
+// ---- currency: what does the subject look like right now? -------------------
+// Live web check (Claude + web_search) → one-sentence appearance brief, cached in assets/appearance.json.
+// This is how pictures stay current without copying anyone's photo.
+type AppearanceCache = Record<string, { brief: string; at: string }>;
+
+const claudeText = async (system: string, user: string, tools: boolean, maxTokens = 500): Promise<string | null> => {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  let messages: { role: "user" | "assistant"; content: unknown }[] = [{ role: "user", content: user }];
+  for (let i = 0; i < 4; i++) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.UTD_DRAFT_MODEL ?? "claude-sonnet-5-5",
+        max_tokens: maxTokens,
+        system,
+        messages,
+        ...(tools ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }] } : {}),
+      }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { content: { type: string; text?: string }[]; stop_reason: string };
+    if (json.stop_reason === "pause_turn") {
+      messages = [...messages, { role: "assistant", content: json.content }];
+      continue;
+    }
+    return json.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("").trim() || null;
+  }
+  return null;
+};
+
+const NAME_RE = /\b([A-Z][\p{L}'’-]+(?:\s+(?:de|da|van|von|di|le|el|al)\s+)?(?:\s+[A-Z][\p{L}'’-]+){1,2})\b/u;
+const TEAM_RE = /\b(Manchester United|Man United|Man Utd|United|Liverpool|Arsenal|Chelsea|Manchester City|Man City|Tottenham|Spurs|Aston Villa|Newcastle|Everton|Real Madrid|Barcelona|Bayern|PSG|Juventus|Inter|AC Milan)\b/;
+
+const appearanceBrief = async (subject: string, dir: string): Promise<string | null> => {
+  const who = subject.match(NAME_RE)?.[1] ?? subject.match(TEAM_RE)?.[1];
+  if (!who) return null;
+  const cachePath = path.join(dir, "assets", "appearance.json");
+  const cache: AppearanceCache = fs.existsSync(cachePath) ? JSON.parse(fs.readFileSync(cachePath, "utf8")) : {};
+  const hit = cache[who.toLowerCase()];
+  if (hit && Date.now() - Date.parse(hit.at) < 7 * 86400e3) return hit.brief;
+  log(`checking what ${who} looks like right now…`);
+  const brief = await claudeText(
+    "You brief an illustrator so the picture is CURRENT. Use web_search (recent news, this month) and answer in ONE sentence, no preamble: for a person — current club/role, current kit colours (describe, no sponsor or badge names), shirt number if known, hair, facial hair, build, approximate age, a typical current setting; for a team — current kit, current manager, home stadium. Only visual facts you can verify as current; if unsure of a detail, leave it out.",
+    `Subject: ${who}. Today: ${new Date().toISOString().slice(0, 10)}.`,
+    true,
+  );
+  if (!brief) return null;
+  cache[who.toLowerCase()] = { brief, at: new Date().toISOString() };
+  fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+  fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
+  return brief;
+};
+
+const withCurrency = async (subject: string, dir: string): Promise<string> => {
+  const brief = await appearanceBrief(subject, dir);
+  return brief ? `${subject}. Current appearance (${new Date().toISOString().slice(0, 7)}): ${brief}` : subject;
+};
+
+/** Who or what is this video about? For the hook background. */
+const inferHookSubject = async (script: Script, research: string): Promise<string | null> =>
+  claudeText(
+    'Reply with JSON only: {"prompt": string}. prompt = one or two sentences briefing an illustrator for the opening background picture of a football video: the single main subject (a named person, or the team as a group if the story is about the team), the setting, the mood. No text or logos in the picture.',
+    `Title: ${script.title}\nVoice-over:\n${script.scenes.map((s, i) => `${i + 1}. ${"vo" in s && s.vo ? s.vo : ""}`).join("\n")}\n${research ? `Research notes:\n${research.slice(0, 2000)}` : ""}`,
+    false,
+    300,
+  ).then((t) => {
+    const m = t?.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    try {
+      return (JSON.parse(m[0]) as { prompt?: string }).prompt ?? null;
+    } catch {
+      return null;
+    }
+  });
+
 const main = async () => {
   const { positional, flags } = parseArgs(process.argv.slice(2));
   const slug = positional[0];
@@ -156,6 +233,27 @@ const main = async () => {
   for (let i = 0; i < script.scenes.length; i++) {
     const sc = script.scenes[i];
     if (only && !only.includes(i)) continue;
+
+    if (sc.type === "hook") {
+      if (!flags.force && sc.bg && fs.existsSync(path.join(dir, sc.bg))) {
+        skipped++;
+        continue;
+      }
+      if (!sc.bgPrompt) {
+        log(`scene ${i + 1}: working out the opening picture from the story…`);
+        sc.bgPrompt = (await inferHookSubject(script, research)) ?? `${script.title}, the main subject of the story`;
+        save();
+      }
+      const subject = await withCurrency(sc.bgPrompt, dir);
+      const file = `assets/hook-${hashText(subject)}.png`;
+      log(`scene ${i + 1}: hook background — ${sc.bgPrompt.slice(0, 80)}…`);
+      const { png } = await generateSafe(subject, forceStyle ?? "photo", "1024x1536");
+      fs.writeFileSync(path.join(dir, file), png);
+      sc.bg = file;
+      made++;
+      save();
+      continue;
+    }
 
     if (sc.type === "image") {
       if (!flags.force && sc.src && fs.existsSync(path.join(dir, sc.src))) {
@@ -181,7 +279,7 @@ const main = async () => {
       const style = forceStyle ?? sc.style ?? "plate";
       const file = `assets/gen-${String(i + 1).padStart(2, "0")}-${hashText(style + subject)}.png`;
       log(`scene ${i + 1}: ${style} — ${subject.slice(0, 80)}…`);
-      const { png, note } = await generateSafe(subject, style, "1024x1536");
+      const { png, note } = await generateSafe(await withCurrency(subject, dir), style, "1024x1536");
       fs.writeFileSync(path.join(dir, file), png);
       sc.src = file;
       if (!sc.source) sc.source = `AI illustration${note ? " · " + note : ""}`;
@@ -203,7 +301,7 @@ const main = async () => {
         continue;
       }
       log(`scene ${i + 1}: card sketch — ${subject.slice(0, 80)}`);
-      const { png } = await generateSafe(subject, "sketch", "1024x1024");
+      const { png } = await generateSafe(await withCurrency(subject, dir), "sketch", "1024x1024");
       fs.writeFileSync(path.join(dir, file), png);
       sc.card.img = file;
       made++;

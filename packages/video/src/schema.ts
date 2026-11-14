@@ -23,6 +23,8 @@ export const HookScene = z.object({
   kicker: z.string().optional(), // small red line above the word
   word: z.string(), // the one-word hook, e.g. "HIJACK?"
   sub: z.string().optional(),
+  bg: z.string().optional(), // background picture of the subject (generated from bgPrompt or uploaded)
+  bgPrompt: z.string().optional(), // who/what the video is about, as they look right now
 });
 
 export const StatScene = z.object({
