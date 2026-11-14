@@ -45,7 +45,8 @@ NON-NEGOTIABLE RULES
 6. At most one gold stat card, for the single headline number.
 7. Mix the scene types for rhythm: boards for tactics, stat/compare for numbers, quote for voices, and image scenes for emotional or hero beats (the system paints them from your "prompt": a manager on the touchline, a stadium in the rain, a dressing room, a trophy, a player in motion — specific subject, setting, mood; style "sketch" for a portrait, "plate" for scenes, "photo" for realism). 1–3 image scenes per video is normal. Footage scenes only when the editor has a clip; never broadcast match footage.
 8. Every stat, compare and quote scene has a source ("Outlet · d Mon yyyy").
-9. Last scene is cta. First scene is hook. 6–10 scenes total.
+9. Last scene is cta. First scene is hook. 7–12 scenes total.
+9b. Visual density is mandatory: for 60 s or longer, 2–4 image scenes (the manager, the key player, the stadium, the decisive moment — each with its own "prompt") and, whenever the topic is tactical, 1–2 board scenes. Every board has 3–5 steps; every step after the first MOVES at least two players or the ball ("players" / "ball") and draws at least one arrow; the decisive step uses "zoom" and a "key" arrow. Never two stat scenes in a row; alternate words, numbers and pictures.
 10. Tactical boards are illustrative: positions explain the pattern, they are not tracking data; say so ONLY in the research notes, never on screen. "card" is a player portrait card: use it only for one named key player (name = SURNAME, sub = club · minute or role); never for notes, disclaimers or titles; omit it when there is no single key player. Step labels are 1–3 words (e.g. "THE *GAP*", "SIX GO *MAN TO MAN*" is too long → "*MAN TO MAN*"). Sync step "at" seconds to where the vo mentions that beat (estimate from word position × 0.42 s).
 
 OUTPUT FORMAT (exactly two fenced blocks, nothing else after them):
@@ -95,6 +96,32 @@ const fence = (text: string, lang: string): string | null => {
 };
 
 export type DraftInput = { slug: string; title: string; brief: string; lengthSec: number; series?: string };
+
+/** What a draft is missing visually; empty = good. */
+const thinness = (script: ScriptT, input: DraftInput): string[] => {
+  const needs: string[] = [];
+  const images = script.scenes.filter((s) => s.type === "image").length;
+  const boards = script.scenes.filter((s) => s.type === "board");
+  const wantImages = input.lengthSec >= 60 ? 2 : 1;
+  if (images < wantImages) needs.push(`add ${wantImages - images} more image scene(s) with a specific "prompt" each, placed at emotional or hero beats (manager, key player, stadium, the moment)`);
+  const tactical = /tactic|shape|press|formation|defend|defence|defense|midfield|back (four|three|line)|build-up|transition|counter|block|marking|space|gap/i.test(`${input.brief} ${input.title} ${script.scenes.map((s) => s.vo ?? "").join(" ")}`);
+  if (tactical && boards.length === 0) needs.push("add a board scene (3–5 steps) that shows the pattern you describe");
+  for (const b of boards) {
+    const idx = script.scenes.indexOf(b) + 1;
+    if (b.type !== "board") continue;
+    if (b.steps.length < 3) needs.push(`scene ${idx} (board): give it 3–5 steps`);
+    const still = b.steps.slice(1).filter((st) => !(st.players && Object.keys(st.players).length >= 2) && !st.ball);
+    if (still.length) needs.push(`scene ${idx} (board): every step after the first must move at least two players or the ball; add "players" moves and arrows to ${still.length} step(s)`);
+    if (!b.steps.some((st) => st.arrows?.some((a) => a.style === "key"))) needs.push(`scene ${idx} (board): the decisive step needs a "key" arrow and a "zoom"`);
+  }
+  for (let i = 1; i < script.scenes.length; i++) {
+    if (script.scenes[i].type === "stat" && script.scenes[i - 1].type === "stat") {
+      needs.push(`scenes ${i} and ${i + 1} are both stat cards — turn one into a compare, quote or image scene`);
+      break;
+    }
+  }
+  return needs;
+};
 export type DraftResult = { script: ScriptT; research: string; searches: number };
 
 export const draftScript = async (input: DraftInput, report: (m: string) => void): Promise<DraftResult> => {
@@ -126,6 +153,7 @@ Research first (several searches), then write. Put id "${input.slug}" in the scr
   let research = fence(text, "md") ?? fence(text, "markdown") ?? "";
   let jsonText = fence(text, "json");
 
+  let revised = false;
   for (let attempt = 0; attempt < 2; attempt++) {
     let parsed: ReturnType<typeof Script.safeParse> | null = null;
     let issues: string[] = [];
@@ -146,6 +174,22 @@ Research first (several searches), then write. Put id "${input.slug}" in the scr
     } else issues = ["no ```json block found"];
 
     if (parsed?.success) {
+      const needs = thinness(parsed.data, input);
+      if (needs.length && !revised) {
+        revised = true;
+        report(`draft is visually thin (${needs.length} fix${needs.length > 1 ? "es" : ""}) — revising…`);
+        messages = [
+          ...messages,
+          { role: "assistant", content: resp.content },
+          { role: "user", content: `Revise the script. Keep the facts and the voice-over tone, but:\n- ${needs.join("\n- ")}\nReturn the full corrected script as a single \`\`\`json block and the research notes as a \`\`\`md block. Do not search again.` },
+        ];
+        resp = await call(messages, false, 9000);
+        text = textOf(resp.content);
+        jsonText = fence(text, "json") ?? jsonText;
+        research = fence(text, "md") ?? fence(text, "markdown") ?? research;
+        attempt--; // this round does not count against repairs
+        continue;
+      }
       report(`script drafted: ${parsed.data.scenes.length} scenes, ${searches} searches`);
       return { script: parsed.data, research: research.trim(), searches };
     }
