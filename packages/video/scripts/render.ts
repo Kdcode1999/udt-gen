@@ -115,7 +115,9 @@ const main = async () => {
   if (!flags["no-thumb"]) {
     const hook = timeline.scenes.find((s) => s.type === "hook") ?? timeline.scenes[0];
     const { jpegQuality: _q, imageFormat: _f, codec: _c, audioCodec: _a, crf: _crf, pixelFormat: _p, concurrency: _n, ...stillOpts } = common;
-    await renderStill({ ...stillOpts, frame: hook.start + Math.round(hook.duration * 0.66), output: path.join(outDir, "thumb.png"), imageFormat: "png" });
+    // thumbnail without burned captions so it works as a poster
+    const thumbProps = { ...inputProps, script: { ...script, captions: { ...(script.captions ?? {}), mode: "off" as const } } };
+    await renderStill({ ...stillOpts, inputProps: thumbProps, frame: hook.start + Math.round(hook.duration * 0.66), output: path.join(outDir, "thumb.png"), imageFormat: "png" });
     log(`thumb → ${path.join(outDir, "thumb.png")}`);
   }
 

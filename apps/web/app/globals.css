@@ -26,3 +26,24 @@ label { display: block; font-size: 11px; letter-spacing: .08em; text-transform: 
 .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: #2a2a32; border-radius: 4px; }
+
+/* --- type --- */
+.display { font-family: Anton, Impact, "Arial Narrow", sans-serif; font-weight: 400; text-transform: uppercase; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* --- home: poster cards --- */
+.poster { position: relative; display: block; aspect-ratio: 9 / 16; border-radius: 14px; overflow: hidden; background: #0f0f13; border: 1px solid var(--line); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.poster:hover { transform: translateY(-3px); border-color: var(--gold); box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+.poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.poster .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,12,.55) 0%, rgba(10,10,12,0) 30%, rgba(10,10,12,0) 50%, rgba(10,10,12,.92) 100%); }
+.poster .glow { position: absolute; left: -30%; top: 20%; width: 160%; height: 70%; background: radial-gradient(closest-side, rgba(229,20,42,.45), transparent 70%); filter: blur(10px); }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; border: 1px solid rgba(255,255,255,.18); background: rgba(10,10,12,.6); color: var(--fg); backdrop-filter: blur(6px); }
+.pill.gold { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.pill.red { background: var(--red); color: #fff; border-color: var(--red); }
+.pill.dim { color: var(--muted); }
+.new-card { aspect-ratio: 9 / 16; border-radius: 14px; border: 2px dashed var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); cursor: pointer; transition: border-color .18s ease, color .18s ease, background .18s ease; background: transparent; }
+.new-card:hover { border-color: var(--gold); color: var(--fg); background: rgba(244,192,78,.04); }
+.stat-tile { border-left: 3px solid var(--red); padding: 2px 0 2px 14px; }
+.stat-tile b { display: block; font-family: Anton, Impact, sans-serif; font-size: 40px; line-height: 1; font-weight: 400; }
+.stat-tile span { display: block; margin-top: 4px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }

@@ -35,7 +35,8 @@
     ".": "./src/lib.ts",
     "./schema": "./src/schema.ts",
     "./timing": "./src/timing.ts",
-    "./brand": "./src/brand.ts"
+    "./brand": "./src/brand.ts",
+    "./fonts": "./src/fonts/data.ts"
   },
   "types": "./src/lib.ts"
 }

@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Script, type Script as ScriptT, type VoManifest as VoManifestT } from "@utd/video/schema";
+import { buildTimeline } from "@utd/video/timing";
 
 export const REPO_DIR = process.env.UTD_REPO_DIR ? path.resolve(process.env.UTD_REPO_DIR) : path.resolve(process.cwd(), "..", "..");
 export const VIDEOS_DIR = process.env.UTD_VIDEOS_DIR ? path.resolve(process.env.UTD_VIDEOS_DIR) : path.join(REPO_DIR, "videos");
@@ -35,8 +36,13 @@ export type VideoSummary = {
   title: string;
   series?: string;
   scenes: number;
+  durationSec: number;
+  hookWord?: string;
+  kicker?: string;
   hasVo: boolean;
+  voStale: boolean;
   hasRender: boolean;
+  renderedAt?: number;
   thumb?: string;
   updatedAt: number;
   invalid?: string;
@@ -60,14 +66,30 @@ export const listVideos = (): VideoSummary[] => {
       const raw = readJson<Record<string, unknown>>(path.join(dir, "script.json"));
       const parsed = raw ? Script.safeParse(raw) : null;
       const stat = fs.statSync(path.join(dir, "script.json"));
+      const vo = readJson<VoManifestT>(path.join(dir, "vo", "manifest.json"));
+      const script = parsed?.success ? parsed.data : null;
+      const hook = script?.scenes.find((sc) => sc.type === "hook");
+      const mp4 = path.join(dir, "out", `${d.name}.mp4`);
+      const thumbP = path.join(dir, "out", "thumb.png");
+      let durationSec = 0;
+      try {
+        if (script) durationSec = buildTimeline(script, vo, 30).total / 30;
+      } catch {
+        /* invalid timing data */
+      }
       return {
         slug: d.name,
-        title: (parsed?.success ? parsed.data.title : (raw?.title as string)) ?? d.name,
-        series: parsed?.success ? parsed.data.series : undefined,
-        scenes: parsed?.success ? parsed.data.scenes.length : Array.isArray(raw?.scenes) ? (raw!.scenes as unknown[]).length : 0,
-        hasVo: fs.existsSync(path.join(dir, "vo", "manifest.json")),
-        hasRender: fs.existsSync(path.join(dir, "out", `${d.name}.mp4`)),
-        thumb: fs.existsSync(path.join(dir, "out", "thumb.png")) ? `/api/videos/${d.name}/file/out/thumb.png` : undefined,
+        title: (script ? script.title : (raw?.title as string)) ?? d.name,
+        series: script?.series,
+        scenes: script ? script.scenes.length : Array.isArray(raw?.scenes) ? (raw!.scenes as unknown[]).length : 0,
+        durationSec,
+        hookWord: hook && hook.type === "hook" ? hook.word : undefined,
+        kicker: hook && hook.type === "hook" ? hook.kicker : undefined,
+        hasVo: !!vo,
+        voStale: !!script && script.scenes.some((sc, i) => sc.vo && vo?.scenes?.[String(i)]?.text?.trim() !== sc.vo.trim()),
+        hasRender: fs.existsSync(mp4),
+        renderedAt: fs.existsSync(mp4) ? fs.statSync(mp4).mtimeMs : undefined,
+        thumb: fs.existsSync(thumbP) ? `/api/videos/${d.name}/file/out/thumb.png?t=${Math.round(fs.statSync(thumbP).mtimeMs)}` : undefined,
         updatedAt: stat.mtimeMs,
         invalid: parsed && !parsed.success ? parsed.error.issues[0]?.message : undefined,
       };
