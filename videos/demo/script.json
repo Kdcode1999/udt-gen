@@ -1,0 +1,380 @@
+{
+  "id": "demo",
+  "title": "DEMO \u00b7 4-4 Villa: the restart problem",
+  "brand": "utd",
+  "series": "MATCH DIARY",
+  "voice": {
+    "provider": "elevenlabs",
+    "voiceId": "",
+    "modelId": "eleven_multilingual_v2",
+    "stability": 0.45,
+    "similarity": 0.8
+  },
+  "music": {
+    "src": "placeholder",
+    "volume": 0.14,
+    "duck": 0.35
+  },
+  "captions": {
+    "mode": "chunk"
+  },
+  "scenes": [
+    {
+      "type": "hook",
+      "kicker": "OLD TRAFFORD \u00b7 8 NOV 2026",
+      "word": "AVOIDABLE?",
+      "sub": "Four conceded. Two of them before the fifth minute.",
+      "vo": "Carrick called them totally avoidable. He's right. And that is exactly the problem."
+    },
+    {
+      "type": "stat",
+      "context": "Every Villa goal came inside the first eight minutes of a half.",
+      "value": 8,
+      "label": "MINUTES INTO EACH HALF",
+      "gold": true,
+      "source": "Goals: 1', 4', 48', 53' \u00b7 Sky Sports",
+      "vo": "Every single Villa goal came inside the first eight minutes of a half. One. Four. Forty-eight. Fifty-three."
+    },
+    {
+      "type": "board",
+      "title": "THE *RESTART*",
+      "card": {
+        "name": "Alysson",
+        "sub": "VILLA \u00b7 1'"
+      },
+      "ball": {
+        "x": 56,
+        "y": 50
+      },
+      "players": [
+        {
+          "id": "h_gk",
+          "team": "home",
+          "x": 50,
+          "y": 92,
+          "name": "Lammens"
+        },
+        {
+          "id": "h_lb",
+          "team": "home",
+          "x": 18,
+          "y": 74,
+          "name": "Dorgu"
+        },
+        {
+          "id": "h_lcb",
+          "team": "home",
+          "x": 38,
+          "y": 72
+        },
+        {
+          "id": "h_rcb",
+          "team": "home",
+          "x": 62,
+          "y": 72,
+          "name": "Yoro"
+        },
+        {
+          "id": "h_rb",
+          "team": "home",
+          "x": 82,
+          "y": 70,
+          "name": "Dalot"
+        },
+        {
+          "id": "h_dm1",
+          "team": "home",
+          "x": 38,
+          "y": 58
+        },
+        {
+          "id": "h_dm2",
+          "team": "home",
+          "x": 62,
+          "y": 58
+        },
+        {
+          "id": "h_lw",
+          "team": "home",
+          "x": 18,
+          "y": 42
+        },
+        {
+          "id": "h_am",
+          "team": "home",
+          "x": 44,
+          "y": 40,
+          "name": "Bruno"
+        },
+        {
+          "id": "h_rw",
+          "team": "home",
+          "x": 82,
+          "y": 42
+        },
+        {
+          "id": "h_st",
+          "team": "home",
+          "x": 50,
+          "y": 28
+        },
+        {
+          "id": "a_gk",
+          "team": "away",
+          "x": 50,
+          "y": 6
+        },
+        {
+          "id": "a_lb",
+          "team": "away",
+          "x": 34,
+          "y": 22
+        },
+        {
+          "id": "a_lcb",
+          "team": "away",
+          "x": 46,
+          "y": 18
+        },
+        {
+          "id": "a_rcb",
+          "team": "away",
+          "x": 58,
+          "y": 18
+        },
+        {
+          "id": "a_rb",
+          "team": "away",
+          "x": 70,
+          "y": 22
+        },
+        {
+          "id": "a_dm1",
+          "team": "away",
+          "x": 40,
+          "y": 36
+        },
+        {
+          "id": "a_dm2",
+          "team": "away",
+          "x": 62,
+          "y": 36
+        },
+        {
+          "id": "a_lw",
+          "team": "away",
+          "x": 22,
+          "y": 50
+        },
+        {
+          "id": "a_am",
+          "team": "away",
+          "x": 56,
+          "y": 50,
+          "name": "McGinn"
+        },
+        {
+          "id": "a_rw",
+          "team": "away",
+          "x": 84,
+          "y": 52,
+          "name": "Alysson"
+        },
+        {
+          "id": "a_st",
+          "team": "away",
+          "x": 50,
+          "y": 62,
+          "name": "Jackson"
+        }
+      ],
+      "steps": [
+        {
+          "lines": [
+            {
+              "from": "h_lb",
+              "to": "h_lcb"
+            },
+            {
+              "from": "h_lcb",
+              "to": "h_rcb"
+            },
+            {
+              "from": "h_rcb",
+              "to": "h_rb"
+            }
+          ]
+        },
+        {
+          "label": "LINE NOT *SET*",
+          "players": {
+            "h_rb": {
+              "x": 84,
+              "y": 58
+            },
+            "h_rcb": {
+              "x": 60,
+              "y": 70
+            },
+            "h_lb": {
+              "x": 16,
+              "y": 68
+            }
+          },
+          "lines": [
+            {
+              "from": "h_lb",
+              "to": "h_lcb"
+            },
+            {
+              "from": "h_lcb",
+              "to": "h_rcb"
+            },
+            {
+              "from": "h_rcb",
+              "to": "h_rb"
+            }
+          ],
+          "zone": {
+            "x": 80,
+            "y": 76,
+            "rx": 10,
+            "ry": 7,
+            "label": "space"
+          },
+          "arrows": [
+            {
+              "from": "a_am",
+              "to": {
+                "x": 82,
+                "y": 76
+              },
+              "style": "pass",
+              "curve": 0.22
+            },
+            {
+              "from": "a_rw",
+              "to": {
+                "x": 80,
+                "y": 74
+              },
+              "style": "run",
+              "curve": -0.1
+            }
+          ],
+          "highlight": [
+            "a_rw"
+          ],
+          "zoom": {
+            "x": 70,
+            "y": 66,
+            "scale": 1.3
+          }
+        },
+        {
+          "label": "*1'* AND *4'*",
+          "players": {
+            "a_rw": {
+              "x": 80,
+              "y": 76
+            },
+            "a_st": {
+              "x": 56,
+              "y": 78
+            }
+          },
+          "ball": {
+            "x": 80,
+            "y": 76
+          },
+          "arrows": [
+            {
+              "from": "a_rw",
+              "to": {
+                "x": 53,
+                "y": 94
+              },
+              "style": "key",
+              "curve": 0.12
+            }
+          ],
+          "highlight": [
+            "h_gk"
+          ],
+          "zoom": {
+            "x": 64,
+            "y": 80,
+            "scale": 1.45
+          }
+        }
+      ],
+      "vo": "Here's the pattern. At the restart the line is high, but it isn't set. One pass behind the full-back, one runner, and the keeper is exposed. Villa did it after sixty seconds. Then again after four minutes."
+    },
+    {
+      "type": "quote",
+      "text": "I actually thought we played pretty well and were the better team for the most part.",
+      "who": "Michael Carrick",
+      "source": "Head coach \u00b7 Sky Sports \u00b7 8 Nov 2026",
+      "vo": "And after all of that, this was the verdict from the dugout."
+    },
+    {
+      "type": "compare",
+      "title": "AFTER TEN GAMES",
+      "left": {
+        "name": "United",
+        "sub": "18th"
+      },
+      "right": {
+        "name": "Villa",
+        "sub": "10th"
+      },
+      "rows": [
+        {
+          "label": "Points",
+          "left": 8,
+          "right": 13
+        },
+        {
+          "label": "Wins",
+          "left": 1,
+          "right": 3
+        },
+        {
+          "label": "Draws",
+          "left": 5,
+          "right": 4
+        },
+        {
+          "label": "Losses",
+          "left": 4,
+          "right": 3,
+          "lowerIsBetter": true
+        }
+      ],
+      "source": "Premier League table \u00b7 8 Nov 2026 \u00b7 ESPN",
+      "vo": "Ten games in, this is where it leaves United. Eighteenth. Eight points. One win."
+    },
+    {
+      "type": "image",
+      "src": "assets/plate-floodlights.png",
+      "caption": "No league win since August",
+      "source": "Illustration \u00b7 placeholder art plate",
+      "kenburns": "in",
+      "vo": "United have not won a league game since August. Sky's numbers say no side in Europe's top five leagues has conceded more."
+    },
+    {
+      "type": "footage",
+      "src": "assets/placeholder-footage.mp4",
+      "from": 0.5,
+      "to": 5.5,
+      "label": "PLACEHOLDER CLIP",
+      "caption": "Your own footage goes here",
+      "vo": "Drop your own clip in here. The generator trims it, mutes it, and keeps your voice on top."
+    },
+    {
+      "type": "cta",
+      "line": "Follow for the full breakdown",
+      "vo": "Follow UTD Diaries for the next breakdown."
+    }
+  ]
+}

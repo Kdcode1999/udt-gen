@@ -1,0 +1,15 @@
+{
+  "name": "utd-gen",
+  "private": true,
+  "version": "0.1.0",
+  "description": "UTD Diaries video generator — script.json in, voiced 9:16 MP4 out",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "studio": "pnpm --filter @utd/video studio",
+    "vo": "pnpm --filter @utd/video vo",
+    "render": "pnpm --filter @utd/video render",
+    "still": "pnpm --filter @utd/video still",
+    "typecheck": "pnpm --filter @utd/video typecheck"
+  }
+}

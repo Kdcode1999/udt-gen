@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+videos/*/out/
+videos/*/vo/*.mp3
+videos/*/vo/*.wav
+*.log
+.DS_Store
+Thumbs.db
+.remotion/
