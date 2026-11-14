@@ -32,6 +32,7 @@ export const Preview = forwardRef<PlayerRef, PreviewProps>(function Preview({ sl
       compositionHeight={HEIGHT}
       fps={FPS}
       initialFrame={Math.min(20, Math.max(0, timeline.total - 1))}
+      numberOfSharedAudioTags={24}
       controls
       clickToPlay
       doubleClickToFullscreen

@@ -97,14 +97,18 @@ export const Video: React.FC<VideoProps> = ({ script, timeline }) => {
             <SceneSwitch scene={scene} timed={timed} brand={brand} />
             {scene.captions !== false && <Captions brand={brand} words={timed.words} mode={capMode} y={script.captions?.y} />}
             {timed.audio && <Audio src={asset(timed.audio)} />}
-            {sfxName && SFX[sfxName] && <Audio src={SFX[sfxName]} volume={0.5} />}
+            {sfxName && SFX[sfxName] && (
+              <Sequence from={0} durationInFrames={Math.min(timed.duration, 60)}>
+                <Audio src={SFX[sfxName]} volume={0.5} />
+              </Sequence>
+            )}
             {scene.type === "board" &&
               scene.steps.slice(1).map((_, i) => {
                 // tick on each step change (mirrors Board's auto spacing when `at` is omitted)
                 const durSec = timed.duration / timeline.fps;
                 const at = scene.steps[i + 1].at ?? 0.4 + ((i + 1) * (durSec - 1.0)) / scene.steps.length;
                 return (
-                  <Sequence key={`tick${i}`} from={Math.round(at * timeline.fps)}>
+                  <Sequence key={`tick${i}`} from={Math.round(at * timeline.fps)} durationInFrames={20}>
                     <Audio src={SFX.tick} volume={0.35} />
                   </Sequence>
                 );
