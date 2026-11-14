@@ -2,6 +2,8 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { SAFE, type Brand } from "../brand";
 import type { SceneOf } from "../schema";
+import type { TimedScene } from "../timing";
+import { Backdrop } from "../components/Backdrop";
 import { pop, ramp, settle, SourceTag } from "../components/ui";
 
 const NUM_COL = 150; // fixed number columns so bars can never run under the digits
@@ -14,7 +16,7 @@ const decimalsOf = (n: number) => {
   return i < 0 ? 0 : Math.min(2, s.length - i - 1);
 };
 
-export const Compare: React.FC<{ scene: SceneOf<"compare">; brand: Brand }> = ({ scene, brand }) => {
+export const Compare: React.FC<{ scene: SceneOf<"compare">; timed: TimedScene; brand: Brand }> = ({ scene, timed, brand }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const head = settle(frame, fps, 0);
@@ -36,6 +38,7 @@ export const Compare: React.FC<{ scene: SceneOf<"compare">; brand: Brand }> = ({
 
   return (
     <AbsoluteFill style={{ background: brand.colors.ink }}>
+      {scene.visuals?.length ? <Backdrop visuals={scene.visuals} words={timed.words} duration={timed.duration} fps={fps} brand={brand} tint={0.6} /> : null}
       {scene.title && (
         <div
           style={{

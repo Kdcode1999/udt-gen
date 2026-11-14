@@ -137,6 +137,34 @@ export const SceneForm: React.FC<Props> = ({ slug, scene, assets, onAssets, onCh
         {scene.type === "board" && <BoardEditor slug={slug} scene={scene} assets={assets} onAssets={onAssets} onChange={onChange} />}
       </Section>
 
+      {(scene.type === "stat" || scene.type === "quote" || scene.type === "compare" || scene.type === "cta") && (
+        <Section
+          title="Visuals behind the card"
+          right={
+            <button className="btn !py-1" onClick={() => set("visuals", [...(scene.visuals ?? []), { cue: "", prompt: "" }])}>
+              + visual
+            </button>
+          }
+        >
+          {!(scene.visuals?.length) && <div className="text-xs text-[var(--muted)]">Pictures that fade in when a word of the voice-over is spoken. Drafts add these themselves; Images paints them.</div>}
+          {(scene.visuals ?? []).map((v, i) => (
+            <div key={i} className="grid grid-cols-[140px_1fr_auto] gap-2 items-start">
+              <div>
+                <label>Cue word</label>
+                <input value={v.cue ?? ""} placeholder="Villa" onChange={(e) => set("visuals", scene.visuals!.map((x, j) => (j === i ? { ...x, cue: e.target.value || undefined } : x)))} />
+              </div>
+              <div>
+                <label>Picture {v.src ? "· painted" : ""}</label>
+                <input value={v.prompt ?? ""} placeholder="Villa players celebrating in front of dejected United defenders" onChange={(e) => set("visuals", scene.visuals!.map((x, j) => (j === i ? { ...x, prompt: e.target.value || undefined, src: undefined } : x)))} />
+              </div>
+              <button className="btn mt-5" onClick={() => set("visuals", scene.visuals!.filter((_, j) => j !== i))}>
+                ✕
+              </button>
+            </div>
+          ))}
+        </Section>
+      )}
+
       <Section title="Voice-over & timing">
         <Area label="Voice-over line" value={scene.vo} onChange={(v) => set("vo", v)} rows={3} placeholder="What the voice says over this scene. Conviction and reasoning, not a readout." hint={scene.vo ? `${scene.vo.length} chars` : undefined} />
         <Row cols={4}>

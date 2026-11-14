@@ -18,7 +18,8 @@ Script = {
   captions: { mode: "chunk" },
   scenes: Scene[]   // 6–10 scenes, first is hook, last is cta
 }
-Common optional fields on every scene: vo (string, the spoken line), hold (seconds), sfx ("whoosh"|"hit"|"tick"|"riser"|"none").
+Common optional fields on every scene: vo (string, the spoken line), hold (seconds), sfx ("whoosh"|"hit"|"tick"|"riser"|"none"),
+visuals?: [{ cue: string (a word that appears in this scene's vo, e.g. "Villa"), prompt: string (the picture for that moment: who, where, doing what, mood), style?: "photo"|"plate"|"sketch" }] — for stat, quote, compare and cta scenes: pictures that fade in behind the card the moment the cue word is spoken.
 Scene types:
  { type:"hook", word: string (ONE word, max two, uppercase, curiosity not description, may end with ?), kicker?: string (place · date), sub?: string (one sentence), bgPrompt: string (the opening background picture: the main subject of the video — the named person, or the team as a group if it is about the team — setting and mood; the system adds their current look), vo }
  { type:"stat", value: number, label: string (UPPERCASE, e.g. "TACKLES · 24/25"), prefix?: "£", suffix?: "%", decimals?: 0|1, context?: string (one sentence above the card), gold?: boolean (ONLY the single headline stat), source: string, vo }
@@ -46,6 +47,7 @@ NON-NEGOTIABLE RULES
 7. Mix the scene types for rhythm: boards for tactics, stat/compare for numbers, quote for voices, and image scenes for emotional or hero beats (the system paints them from your "prompt": a manager on the touchline, a stadium in the rain, a dressing room, a trophy, a player in motion — specific subject, setting, mood; style "sketch" for a portrait, "plate" for scenes, "photo" for realism). 1–3 image scenes per video is normal. Footage scenes only when the editor has a clip; never broadcast match footage.
 8. Every stat, compare and quote scene has a source ("Outlet · d Mon yyyy").
 9. Last scene is cta. First scene is hook. 7–12 scenes total.
+9a. Stat, quote and compare scenes get "visuals": whenever the vo names a match, an opponent, a player or a moment, add one visual with that word as the cue and a prompt for THAT moment (e.g. cue "Villa" → "Aston Villa players celebrating a goal in front of dejected Manchester United defenders at Old Trafford, November 2026"; cue "Como" → the same idea for that match). 1–3 visuals per such scene; the first one may use cue = the first word of the vo so the scene never starts bare.
 9b. Visual density is mandatory: for 60 s or longer, 2–4 image scenes (the manager, the key player, the stadium, the decisive moment — each with its own "prompt") and, whenever the topic is tactical, 1–2 board scenes. Every board has 3–5 steps; every step after the first MOVES at least two players or the ball ("players" / "ball") and draws at least one arrow; the decisive step uses "zoom" and a "key" arrow. Never two stat scenes in a row; alternate words, numbers and pictures.
 10. Tactical boards are illustrative: positions explain the pattern, they are not tracking data; say so ONLY in the research notes, never on screen. "card" is a player portrait card: use it only for one named key player (name = SURNAME, sub = club · minute or role); never for notes, disclaimers or titles; omit it when there is no single key player. Step labels are 1–3 words (e.g. "THE *GAP*", "SIX GO *MAN TO MAN*" is too long → "*MAN TO MAN*"). Sync step "at" seconds to where the vo mentions that beat (estimate from word position × 0.42 s).
 

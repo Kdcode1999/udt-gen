@@ -6,6 +6,17 @@ import { z } from "zod";
 
 export const SfxName = z.enum(["whoosh", "hit", "tick", "riser", "none"]);
 
+/** A background picture that appears when a word in the voice-over is spoken (or at a time). */
+export const Visual = z.object({
+  cue: z.string().optional(), // word(s) in the vo, e.g. "Villa" — shows when spoken
+  at: z.number().min(0).optional(), // or seconds into the scene (0 = from the start)
+  prompt: z.string().optional(), // what to paint; the system adds the subject's current look
+  style: z.enum(["plate", "sketch", "photo"]).optional(), // default photo
+  src: z.string().optional(), // generated/uploaded file
+});
+export type VisualT = z.infer<typeof Visual>;
+
+
 const base = {
   id: z.string().optional(),
   vo: z.string().optional(),
@@ -13,9 +24,12 @@ const base = {
   hold: z.number().min(0).optional(),
   sfx: SfxName.optional(),
   captions: z.boolean().optional(),
+  visuals: z.array(Visual).max(6).optional(), // stat / quote / compare / cta: pictures that follow the voice-over
 };
 
 export const Point = z.object({ x: z.number(), y: z.number() });
+
+
 
 export const HookScene = z.object({
   ...base,

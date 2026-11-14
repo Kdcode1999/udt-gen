@@ -2,9 +2,11 @@ import React from "react";
 import { AbsoluteFill, Img, useCurrentFrame, useVideoConfig } from "remotion";
 import { SAFE, type Brand } from "../brand";
 import type { SceneOf } from "../schema";
+import type { TimedScene } from "../timing";
+import { Backdrop } from "../components/Backdrop";
 import { asset, Glow, ramp, settle } from "../components/ui";
 
-export const Quote: React.FC<{ scene: SceneOf<"quote">; brand: Brand }> = ({ scene, brand }) => {
+export const Quote: React.FC<{ scene: SceneOf<"quote">; timed: TimedScene; brand: Brand }> = ({ scene, timed, brand }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const mark = ramp(frame, 0, 18);
@@ -15,6 +17,7 @@ export const Quote: React.FC<{ scene: SceneOf<"quote">; brand: Brand }> = ({ sce
 
   return (
     <AbsoluteFill style={{ background: brand.colors.ink }}>
+      {scene.visuals?.length ? <Backdrop visuals={scene.visuals} words={timed.words} duration={timed.duration} fps={fps} brand={brand} /> : null}
       <Glow brand={brand} x={200} y={700} size={1200} strength={0.3} />
       <div
         style={{
@@ -42,6 +45,7 @@ export const Quote: React.FC<{ scene: SceneOf<"quote">; brand: Brand }> = ({ sce
           fontSize: size,
           lineHeight: 1.22,
           color: brand.colors.white,
+          textShadow: scene.visuals?.length ? "0 2px 14px rgba(10,10,12,.9)" : undefined,
           opacity: text,
           transform: `translateY(${(1 - text) * 30}px)`,
           textWrap: "balance" as never,

@@ -234,6 +234,27 @@ const main = async () => {
     const sc = script.scenes[i];
     if (only && !only.includes(i)) continue;
 
+    // voice-synced visuals (stat / quote / compare / cta)
+    if (sc.visuals?.length) {
+      for (let v = 0; v < sc.visuals.length; v++) {
+        const vis = sc.visuals[v];
+        if (!flags.force && vis.src && fs.existsSync(path.join(dir, vis.src))) {
+          skipped++;
+          continue;
+        }
+        const subject = vis.prompt ?? vis.cue;
+        if (!subject) continue;
+        const style = forceStyle ?? vis.style ?? "photo";
+        const file = `assets/vis-${String(i + 1).padStart(2, "0")}-${v + 1}-${hashText(style + subject)}.png`;
+        log(`scene ${i + 1} visual ${v + 1} (${vis.cue ?? vis.at ?? "start"}): ${subject.slice(0, 70)}…`);
+        const { png } = await generateSafe(await withCurrency(subject, dir), style, "1024x1536");
+        fs.writeFileSync(path.join(dir, file), png);
+        vis.src = file;
+        made++;
+        save();
+      }
+    }
+
     if (sc.type === "hook") {
       if (!flags.force && sc.bg && fs.existsSync(path.join(dir, sc.bg))) {
         skipped++;

@@ -2,12 +2,14 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { SAFE, type Brand } from "../brand";
 import type { SceneOf } from "../schema";
+import type { TimedScene } from "../timing";
+import { Backdrop } from "../components/Backdrop";
 import { Glow, pop, settle, SourceTag } from "../components/ui";
 
 const fmt = (v: number, decimals = 0) =>
   v.toLocaleString("en-GB", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-export const Stat: React.FC<{ scene: SceneOf<"stat">; brand: Brand }> = ({ scene, brand }) => {
+export const Stat: React.FC<{ scene: SceneOf<"stat">; timed: TimedScene; brand: Brand }> = ({ scene, timed, brand }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const card = pop(frame, fps, 6);
@@ -26,6 +28,7 @@ export const Stat: React.FC<{ scene: SceneOf<"stat">; brand: Brand }> = ({ scene
 
   return (
     <AbsoluteFill style={{ background: brand.colors.ink }}>
+      {scene.visuals?.length ? <Backdrop visuals={scene.visuals} words={timed.words} duration={timed.duration} fps={fps} brand={brand} /> : null}
       <Glow brand={brand} y={1100} strength={gold ? 0.25 : 0.4} />
       {scene.context && (
         <div
@@ -39,6 +42,7 @@ export const Stat: React.FC<{ scene: SceneOf<"stat">; brand: Brand }> = ({ scene
             fontSize: 54,
             lineHeight: 1.15,
             color: brand.colors.white,
+            textShadow: scene.visuals?.length ? "0 2px 14px rgba(10,10,12,.9)" : undefined,
             opacity: ctx,
             transform: `translateY(${(1 - ctx) * 24}px)`,
           }}

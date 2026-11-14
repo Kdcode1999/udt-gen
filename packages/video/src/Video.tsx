@@ -47,11 +47,11 @@ const SceneSwitch: React.FC<{ scene: Scene; timed: TimedScene; brand: Brand }> =
     case "hook":
       return <Hook scene={scene} brand={brand} />;
     case "stat":
-      return <Stat scene={scene} brand={brand} />;
+      return <Stat scene={scene} timed={timed} brand={brand} />;
     case "quote":
-      return <Quote scene={scene} brand={brand} />;
+      return <Quote scene={scene} timed={timed} brand={brand} />;
     case "compare":
-      return <Compare scene={scene} brand={brand} />;
+      return <Compare scene={scene} timed={timed} brand={brand} />;
     case "board":
       return <Board scene={scene} timed={timed} brand={brand} />;
     case "image":
