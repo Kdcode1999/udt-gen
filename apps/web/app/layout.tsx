@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FONT_DATA } from "@utd/video/fonts";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
 
 export const metadata: Metadata = { title: "UTD Gen", description: "Script in, voiced vertical video out" };
@@ -15,9 +16,10 @@ const fontCss = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: fontCss }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("utd-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}` }} />
       </head>
       <body className="min-h-screen">
         <header className="h-14 border-b border-[var(--line)] flex items-center px-5 gap-5 bg-[var(--surface)]">
@@ -36,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="w-2 h-2 rounded-full bg-[var(--gold)] shadow-[0_0_10px_var(--gold)]" />
             local · videos/
           </span>
+          <ThemeToggle />
         </header>
         {children}
       </body>

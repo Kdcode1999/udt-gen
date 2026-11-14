@@ -51,7 +51,7 @@ export const JobPanel: React.FC<{ job: Job | null; onFinished: (job: Job) => voi
         </div>
       )}
       <div className="text-xs text-[var(--muted)] break-words">{live.message}</div>
-      {showLog && <pre className="mono text-[11px] max-h-48 overflow-auto scrollbar-thin bg-[var(--ink)] p-2 rounded whitespace-pre-wrap">{log || "(no output yet)"}</pre>}
+      {showLog && <pre className="mono text-[11px] max-h-48 overflow-auto scrollbar-thin bg-[var(--bg)] border border-[var(--line)] p-2 rounded whitespace-pre-wrap">{log || "(no output yet)"}</pre>}
     </div>
   );
 };
