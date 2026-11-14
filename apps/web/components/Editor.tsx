@@ -5,11 +5,12 @@ import { Script, BRANDS, FPS, type SceneT, type Timeline, type VoManifestT } fro
 import { SceneForm } from "./SceneForm";
 import { Preview } from "./Preview";
 import { JobPanel, type Job } from "./JobPanel";
+import { PostCopy } from "./PostCopy";
 import type { AssetInfo } from "./AssetPicker";
 import { Check, Num, Row, Section, Select, Text } from "./fields";
 import { AssetPicker } from "./AssetPicker";
 
-type Outputs = { mp4?: string; thumb?: string; srt?: string; voSheet?: string; stills: { name: string; url: string }[]; renderedAt?: number };
+type Outputs = { mp4?: string; thumb?: string; srt?: string; voSheet?: string; post?: string; postText?: string; postJson?: Record<string, unknown>; stills: { name: string; url: string }[]; renderedAt?: number };
 type Issue = { path: string; message: string };
 type AnyScript = Record<string, unknown> & { scenes: SceneT[]; voice?: Record<string, unknown>; music?: Record<string, unknown>; captions?: Record<string, unknown> };
 
@@ -132,7 +133,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
     return true;
   };
 
-  const run = async (kind: "vo" | "render" | "stills" | "images", body: Record<string, unknown> = {}) => {
+  const run = async (kind: "vo" | "render" | "stills" | "images" | "post", body: Record<string, unknown> = {}) => {
     if (dirty || !valid) {
       const ok = await save();
       if (!ok) return;
@@ -428,6 +429,9 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
               )}
             </div>
           </div>
+        )}
+        {(outputs.postJson || outputs.mp4) && (
+          <PostCopy post={(outputs.postJson ?? {}) as Record<string, never>} downloadUrl={outputs.post} onRewrite={() => run("post")} busy={busy} />
         )}
         {outputs.stills.length > 0 && (
           <div className="card p-3 grid gap-2">

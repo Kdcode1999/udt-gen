@@ -140,7 +140,7 @@ export const saveAsset = async (slug: string, file: File): Promise<AssetInfo> =>
   return { name: clean, path: `assets/${clean}`, size: buf.length, kind: kindOf(clean), url: `/api/videos/${slug}/file/assets/${encodeURIComponent(clean)}` };
 };
 
-export type Outputs = { mp4?: string; thumb?: string; srt?: string; voSheet?: string; stills: { name: string; url: string }[]; renderedAt?: number };
+export type Outputs = { mp4?: string; thumb?: string; srt?: string; voSheet?: string; post?: string; postText?: string; postJson?: Record<string, unknown>; stills: { name: string; url: string }[]; renderedAt?: number };
 
 export const listOutputs = (slug: string): Outputs => {
   const out = path.join(videoDir(slug), "out");
@@ -155,7 +155,11 @@ export const listOutputs = (slug: string): Outputs => {
         .map((f) => ({ name: f, url: `${u("stills/" + f)}?t=${fs.statSync(path.join(stillsDir, f)).mtimeMs}` }))
     : [];
   const mp4 = `${slug}.mp4`;
+  const postJson = has("post.json") ? readJson<Record<string, unknown>>(path.join(out, "post.json")) ?? undefined : undefined;
   return {
+    post: has("post.txt") ? u("post.txt") : undefined,
+    postText: has("post.txt") ? fs.readFileSync(path.join(out, "post.txt"), "utf8") : undefined,
+    postJson,
     mp4: has(mp4) ? `${u(mp4)}?t=${fs.statSync(path.join(out, mp4)).mtimeMs}` : undefined,
     thumb: has("thumb.png") ? `${u("thumb.png")}?t=${fs.statSync(path.join(out, "thumb.png")).mtimeMs}` : undefined,
     srt: has("captions.srt") ? u("captions.srt") : undefined,

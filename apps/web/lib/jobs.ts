@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PKG_DIR, videoDir } from "./store";
 
-export type JobKind = "vo" | "render" | "stills" | "draft" | "images";
+export type JobKind = "vo" | "render" | "stills" | "draft" | "images" | "post";
 export type JobStatus = "running" | "done" | "failed";
 export type Job = {
   id: string;
@@ -58,7 +58,7 @@ export const startJob = (slug: string, kind: JobKind, args: string[] = []): Job 
   reg.jobs.set(id, job);
   reg.latest.set(slug, job);
 
-  const script = kind === "vo" ? "vo" : kind === "render" ? "render" : kind === "images" ? "images" : "still";
+  const script = kind === "vo" ? "vo" : kind === "render" ? "render" : kind === "images" ? "images" : kind === "post" ? "post" : "still";
   const child = spawn("pnpm", [script, slug, ...args], {
     cwd: PKG_DIR,
     shell: process.platform === "win32",
@@ -133,7 +133,7 @@ export const startAsyncJob = (slug: string, kind: JobKind, fn: (report: (m: stri
 };
 
 /** Run one CLI script to completion (used inside async jobs, e.g. images right after a draft). */
-export const runCli = (slug: string, script: "vo" | "render" | "still" | "images", args: string[], report: (m: string) => void): Promise<number> =>
+export const runCli = (slug: string, script: "vo" | "render" | "still" | "images" | "post", args: string[], report: (m: string) => void): Promise<number> =>
   new Promise((resolve) => {
     const dir = videoDir(slug);
     const child = spawn("pnpm", [script, slug, ...args], { cwd: PKG_DIR, shell: process.platform === "win32", env: { ...process.env, FORCE_COLOR: "0", UTD_VIDEOS_DIR: path.dirname(dir) } });

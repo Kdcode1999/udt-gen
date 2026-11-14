@@ -15,6 +15,7 @@
     "typecheck": "pnpm -r typecheck",
     "dev": "pnpm --filter @utd/web dev",
     "build": "pnpm --filter @utd/web build",
-    "images": "pnpm --filter @utd/video images"
+    "images": "pnpm --filter @utd/video images",
+    "post": "pnpm --filter @utd/video post"
   }
 }

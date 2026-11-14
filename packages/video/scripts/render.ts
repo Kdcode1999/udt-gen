@@ -13,6 +13,7 @@ import { renderMedia, renderStill, selectComposition } from "@remotion/renderer"
 import { buildTimeline, chunkWords, toSrtTime } from "../src/timing";
 import { FPS } from "../src/brand";
 import { browserExecutable, ENTRY, fmtSec, loadScript, loadVo, log, parseArgs, videoDir } from "./lib";
+import { generatePost } from "./postcopy";
 
 const main = async () => {
   const { positional, flags } = parseArgs(process.argv.slice(2));
@@ -119,6 +120,15 @@ const main = async () => {
     const thumbProps = { ...inputProps, script: { ...script, captions: { ...(script.captions ?? {}), mode: "off" as const } } };
     await renderStill({ ...stillOpts, inputProps: thumbProps, frame: hook.start + Math.round(hook.duration * 0.66), output: path.join(outDir, "thumb.png"), imageFormat: "png" });
     log(`thumb → ${path.join(outDir, "thumb.png")}`);
+  }
+
+  // caption + description to post with (skipped only with --no-post)
+  if (!flags["no-post"]) {
+    try {
+      await generatePost(dir, script, timeline.total / FPS);
+    } catch (e) {
+      log(`post copy failed: ${(e as Error).message}`);
+    }
   }
 
   log(`done. outputs in ${outDir}`);

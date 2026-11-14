@@ -9,7 +9,8 @@
     "render": "tsx scripts/render.ts",
     "still": "tsx scripts/still.ts",
     "typecheck": "tsc --noEmit",
-    "images": "tsx scripts/images.ts"
+    "images": "tsx scripts/images.ts",
+    "post": "tsx scripts/post.ts"
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.0",
