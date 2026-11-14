@@ -167,7 +167,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
   }, [vo, scenes]);
 
   const busy = job?.status === "running";
-  const imagesPending = scenes.some((sc) => (sc.type === "image" && sc.prompt && !sc.src) || (sc.type === "board" && sc.card?.prompt && !sc.card.img));
+  const imagesPending = scenes.some((sc) => (sc.type === "image" && !sc.src && (sc.prompt || sc.caption)) || (sc.type === "board" && sc.card && !sc.card.img));
 
   return (
     <div className="grid grid-cols-[260px_minmax(0,1fr)_400px] h-[calc(100vh-3rem)]">

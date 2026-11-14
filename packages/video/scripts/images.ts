@@ -74,15 +74,21 @@ const main = async () => {
     const sc = script.scenes[i];
     if (only && !only.includes(i)) continue;
 
-    if (sc.type === "image" && sc.prompt) {
+    if (sc.type === "image") {
+      // no prompt? derive one from the caption (older drafts, hand-written scripts)
+      const subject = (sc.prompt ?? sc.caption ?? "").replace(/^\s*drop in:?\s*/i, "").replace(/\bno broadcast footage\.?/i, "").trim();
+      if (!subject) {
+        log(`scene ${i + 1}: image has no prompt or caption — skipped`);
+        continue;
+      }
       const style = forceStyle ?? sc.style ?? "plate";
-      const file = `assets/gen-${String(i + 1).padStart(2, "0")}-${hashText(style + sc.prompt)}.png`;
+      const file = `assets/gen-${String(i + 1).padStart(2, "0")}-${hashText(style + subject)}.png`;
       if (!flags.force && sc.src && fs.existsSync(path.join(dir, sc.src))) {
         skipped++;
         continue;
       }
-      log(`scene ${i + 1}: ${style} — ${sc.prompt.slice(0, 80)}…`);
-      const { png, note } = await generateSafe(sc.prompt, style, "1024x1536");
+      log(`scene ${i + 1}: ${style} — ${subject.slice(0, 80)}…`);
+      const { png, note } = await generateSafe(subject, style, "1024x1536");
       fs.writeFileSync(path.join(dir, file), png);
       sc.src = file;
       if (!sc.source) sc.source = `AI illustration${note ? " · " + note : ""}`;
@@ -90,14 +96,15 @@ const main = async () => {
       save();
     }
 
-    if (sc.type === "board" && sc.card?.prompt) {
-      const file = `assets/card-${String(i + 1).padStart(2, "0")}-${hashText(sc.card.prompt)}.png`;
+    if (sc.type === "board" && sc.card) {
+      const subject = sc.card.prompt ?? `${sc.card.name}${sc.card.sub ? ", " + sc.card.sub : ""}, footballer portrait`;
+      const file = `assets/card-${String(i + 1).padStart(2, "0")}-${hashText(subject)}.png`;
       if (!flags.force && sc.card.img && fs.existsSync(path.join(dir, sc.card.img))) {
         skipped++;
         continue;
       }
-      log(`scene ${i + 1}: card sketch — ${sc.card.prompt.slice(0, 80)}`);
-      const { png } = await generateSafe(sc.card.prompt, "sketch", "1024x1024");
+      log(`scene ${i + 1}: card sketch — ${subject.slice(0, 80)}`);
+      const { png } = await generateSafe(subject, "sketch", "1024x1024");
       fs.writeFileSync(path.join(dir, file), png);
       sc.card.img = file;
       made++;
