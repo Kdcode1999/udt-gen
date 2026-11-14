@@ -215,6 +215,30 @@ const inferHookSubject = async (script: Script, research: string): Promise<strin
     }
   });
 
+/** Propose voice-synced visuals for a stat / quote / compare / cta scene that has none. */
+const inferVisuals = async (script: Script, i: number, research: string): Promise<{ cue: string; prompt: string; style?: Style }[]> => {
+  const sc = script.scenes[i];
+  const vo = "vo" in sc ? sc.vo : undefined;
+  if (!vo) return [];
+  const text = await claudeText(
+    'Reply with JSON only: {"visuals": [{"cue": string, "prompt": string, "style": "photo"|"plate"|"sketch"}]}. You pick 1–3 background pictures for a scene of a Manchester United short video. Each visual fires when its cue word is spoken: cue MUST be a single word copied exactly from the voice-over (an opponent, a player, a place, a moment). prompt = that specific moment as a picture (who, where, doing what, mood; named people are fine; no text or logos). The first visual uses the first word of the voice-over so the scene never starts bare. If the voice-over names nothing visual, return one atmospheric visual with the first word as cue.',
+    `Video: ${script.title}\nScene ${i + 1} (${sc.type}) voice-over: ${vo}\n${research ? `Research notes:\n${research.slice(0, 1500)}` : ""}`,
+    false,
+    600,
+  );
+  const m = text?.match(/\{[\s\S]*\}/);
+  if (!m) return [];
+  try {
+    const out = JSON.parse(m[0]) as { visuals?: { cue?: string; prompt?: string; style?: string }[] };
+    return (out.visuals ?? [])
+      .filter((v) => v.cue && v.prompt)
+      .slice(0, 3)
+      .map((v) => ({ cue: v.cue!, prompt: v.prompt!, style: (["plate", "sketch", "photo"] as Style[]).includes(v.style as Style) ? (v.style as Style) : undefined }));
+  } catch {
+    return [];
+  }
+};
+
 const main = async () => {
   const { positional, flags } = parseArgs(process.argv.slice(2));
   const slug = positional[0];
@@ -234,7 +258,15 @@ const main = async () => {
     const sc = script.scenes[i];
     if (only && !only.includes(i)) continue;
 
-    // voice-synced visuals (stat / quote / compare / cta)
+    // voice-synced visuals (stat / quote / compare / cta): propose them when the script has none
+    if ((sc.type === "stat" || sc.type === "quote" || sc.type === "compare" || sc.type === "cta") && !sc.visuals?.length && sc.vo) {
+      log(`scene ${i + 1}: choosing pictures for the voice-over…`);
+      const proposed = await inferVisuals(script, i, research);
+      if (proposed.length) {
+        sc.visuals = proposed;
+        save();
+      }
+    }
     if (sc.visuals?.length) {
       for (let v = 0; v < sc.visuals.length; v++) {
         const vis = sc.visuals[v];

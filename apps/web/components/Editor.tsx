@@ -375,7 +375,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
                   scenes: (cur.scenes ?? []).map((sc, i) => {
                     const d = disk.scenes?.[i];
                     if (!d || d.type !== sc.type) return sc;
-                    const visuals = sc.visuals?.map((v, k) => ({ ...v, src: v.src ?? d.visuals?.[k]?.src }));
+                    const visuals = sc.visuals?.length ? sc.visuals.map((v, k) => ({ ...v, src: v.src ?? d.visuals?.[k]?.src })) : d.visuals;
                     sc = visuals ? ({ ...sc, visuals } as typeof sc) : sc;
                     if (sc.type === "hook" && d.type === "hook") return { ...sc, bg: d.bg ?? sc.bg, bgPrompt: sc.bgPrompt ?? d.bgPrompt };
                     if (sc.type === "image" && d.type === "image") return { ...sc, src: d.src || sc.src, prompt: sc.prompt ?? d.prompt, style: sc.style ?? d.style, caption: d.caption ?? sc.caption, source: sc.source ?? d.source };
