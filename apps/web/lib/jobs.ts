@@ -65,6 +65,7 @@ export const startJob = (slug: string, kind: JobKind, args: string[] = []): Job 
     env: { ...process.env, FORCE_COLOR: "0", UTD_VIDEOS_DIR: path.dirname(dir) },
   });
   const log = fs.createWriteStream(logFile);
+  let firstError: string | null = null;
   const onData = (buf: Buffer) => {
     const text = buf.toString().replace(ANSI, "");
     log.write(text);
@@ -73,8 +74,18 @@ export const startJob = (slug: string, kind: JobKind, args: string[] = []): Job 
       if (!l || STRIP.test(l)) continue;
       const pct = l.match(/render (\d+)%/);
       if (pct) job.progress = Number(pct[1]) / 100;
-      if (l.startsWith("[utd-gen]")) job.message = l.replace("[utd-gen] ", "");
-      else if (/error|failed|invalid|cannot|Error/i.test(l)) job.message = l.slice(0, 300);
+      const boilerplate = /ELIFECYCLE|ERR_PNPM|Command failed|exit code|Exit status|^> |^npm |^pnpm /i.test(l);
+      if (boilerplate) continue;
+      if (l.startsWith("[utd-gen]")) {
+        if (!firstError) job.message = l.replace("[utd-gen] ", "");
+      } else if (/error|failed|invalid|cannot|not set|denied|\b4\d\d\b|\b5\d\d\b/i.test(l)) {
+        // keep the FIRST real error line; later lines are usually stack/boilerplate
+        if (!firstError) firstError = l.slice(0, 400);
+        job.message = firstError;
+      } else if (firstError && l.length > 8 && l.length < 300 && /^\s{0,2}[A-Za-z]/.test(l) && !/^\s*at /.test(l)) {
+        // follow-on explanation lines (e.g. "Either pick a premade voice…")
+        if (job.message.length < 600) job.message += " " + l;
+      }
     }
   };
   child.stdout.on("data", onData);
