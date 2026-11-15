@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { VIDEOS_DIR } from "./store";
-import { draftModel } from "./draft";
+import { claude, jsonInText, textOf, toolInput, type Msg, type Reply } from "./claude";
 import { saveScan, type Scan } from "./radarStore";
 
 export type RadarTopic = {
@@ -199,33 +199,13 @@ const PUBLISH_TOOL = {
   },
 };
 
-type Block = { type: string; text?: string; name?: string; input?: unknown };
-type Msg = { role: "user" | "assistant"; content: unknown };
-type Reply = { content: Block[]; stop_reason: string };
-
-class ApiError extends Error {
-  constructor(public status: number, public body: string) {
-    super(`Claude API ${status}: ${body.slice(0, 300)}`);
-  }
-}
-
-const claude = async (body: Record<string, unknown>): Promise<Reply> => {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: draftModel(), max_tokens: 8000, ...body }),
-  });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
-  return (await res.json()) as Reply;
-};
-
 const str = (v: unknown) => (v == null ? "" : String(v)).trim();
 
-/** Pull the publish_radar call out of a reply and normalise it (strict mode makes this a formality; the loose fallbacks need it). */
-const published = (content: Block[]): { topics: RadarTopic[] } | null => {
-  const input = content.find((b) => b.type === "tool_use" && b.name === PUBLISH_TOOL.name)?.input as { topics?: unknown } | undefined;
-  if (!input || !Array.isArray(input.topics) || input.topics.length === 0) return null;
-  const topics = (input.topics as Record<string, unknown>[]).filter((t) => t && typeof t === "object" && str(t.title)).map((t) => ({
+/** Normalise a published radar (strict mode makes this a formality; the loose and prose fallbacks need it). */
+const asTopics = (input: unknown): { topics: RadarTopic[] } | null => {
+  const topics0 = input && typeof input === "object" ? (input as { topics?: unknown }).topics : null;
+  if (!Array.isArray(topics0) || topics0.length === 0) return null;
+  const topics = (topics0 as Record<string, unknown>[]).filter((t) => t && typeof t === "object" && str(t.title)).map((t) => ({
     title: str(t.title),
     hook: str(t.hook).toUpperCase() || "WHY?",
     heat: Number(t.heat) || 3,
@@ -238,61 +218,41 @@ const published = (content: Block[]): { topics: RadarTopic[] } | null => {
   }));
   return topics.length ? { topics } : null;
 };
+const published = (reply: Reply) => asTopics(toolInput(reply, PUBLISH_TOOL.name)?.input) ?? asTopics(jsonInText(reply));
 
 /**
  * Rank the signals with Claude (a few live web searches allowed) and receive the result through publish_radar.
- * Resilient by construction: strict tool → loose tool if the API refuses strict; forced tool_choice → auto if
- * refused; and if a turn still ends in prose, a second search-free call that forces the tool call.
+ * The shared client downgrades a rejected strict tool or forced tool_choice by itself; if a turn still ends in
+ * prose, the prose is parsed as JSON, and failing that a second search-free call asks for the tool call.
  */
 export const rankWithClaude = async (system: string, user: string, report: (m: string) => void): Promise<{ topics: RadarTopic[] }> => {
   const webSearch = { type: "web_search_20250305", name: "web_search", max_uses: 4 };
-  let tool: Record<string, unknown> = PUBLISH_TOOL;
-  let choice: Record<string, unknown> = { type: "any" };
   let messages: Msg[] = [{ role: "user", content: user }];
   let prose = "";
-  let adjustments = 0;
-
+  let reply: Reply | null = null;
   for (let turn = 0; turn < 6; turn++) {
-    let reply: Reply;
-    try {
-      reply = await claude({ system, messages, tools: [webSearch, tool], tool_choice: choice });
-    } catch (e) {
-      // The API told us a feature isn't accepted here — drop it and go again rather than fail the scan.
-      if (e instanceof ApiError && e.status === 400 && adjustments < 2) {
-        adjustments++;
-        if (tool.strict && /strict/i.test(e.body)) {
-          const { strict: _drop, ...loose } = tool;
-          tool = loose;
-          turn--;
-          continue;
-        }
-        if (choice.type !== "auto" && /tool_choice/i.test(e.body)) {
-          choice = { type: "auto" };
-          turn--;
-          continue;
-        }
-      }
-      throw e;
-    }
-    const got = published(reply.content);
+    reply = await claude({ system, messages, tools: [webSearch, PUBLISH_TOOL], tool_choice: { type: "any" } });
+    const got = published(reply);
     if (got) return got;
-    prose += reply.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
+    prose += textOf(reply.content);
     if (reply.stop_reason === "pause_turn") {
       report("still checking the conversation…");
       messages = [...messages, { role: "assistant", content: reply.content }];
       continue;
     }
-    break; // ended without the tool call → structured fallback below
+    break; // ended without the tool call → ask once more, plainly
   }
 
   report("tidying the ranking…");
   const handoff = prose.trim()
-    ? `Here is a topic radar written as text. Publish it through the publish_radar tool — same content, just in the tool's shape (fill any missing field sensibly):\n\n${prose}`
-    : `${user}\n\n(No web searches available this time — rank from the signals above and publish through the publish_radar tool.)`;
-  const reply = await claude({ system, messages: [{ role: "user", content: handoff }], tools: [tool], tool_choice: { type: "tool", name: PUBLISH_TOOL.name } });
-  const got = published(reply.content);
-  if (!got) throw new Error("radar: Claude returned no topics");
-  return got;
+    ? `Here is a topic radar written as text. Publish it through the publish_radar tool — same content, just in the tool's shape (fill any missing field sensibly). Reply with the tool call only.\n\n${prose}`
+    : `${user}\n\n(No web searches this time — rank from the signals above and publish through the publish_radar tool. Reply with the tool call only.)`;
+  for (let i = 0; i < 2; i++) {
+    reply = await claude({ system, messages: [{ role: "user", content: handoff }], tools: [PUBLISH_TOOL], tool_choice: { type: "tool", name: PUBLISH_TOOL.name } });
+    const got = published(reply);
+    if (got) return got;
+  }
+  throw new Error("radar: Claude returned no topics");
 };
 
 export const buildRadar = async (report: (m: string) => void): Promise<Scan> => {

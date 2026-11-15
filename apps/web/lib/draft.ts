@@ -1,19 +1,14 @@
 // AI drafting: brief → researched script.json + research.md, via the Claude API with live web search.
 // Needs ANTHROPIC_API_KEY in the environment. Model via UTD_DRAFT_MODEL (default claude-sonnet-5-5).
-import { refreshKeys } from "@/lib/env";
 import fs from "node:fs";
 import path from "node:path";
 import type { Script as ScriptT } from "@utd/video/schema";
 import { normalizeScript, scriptIssues } from "@utd/video/normalize";
 import { videoDir } from "./store";
+import { claude, configured, model, textOf, toolInput, type Block, type Msg, type Reply } from "./claude";
 
-export const draftConfigured = () => {
-  if (!process.env.ANTHROPIC_API_KEY) refreshKeys();
-  return !!process.env.ANTHROPIC_API_KEY;
-};
-export const draftModel = () => process.env.UTD_DRAFT_MODEL ?? "claude-sonnet-5-5";
-
-const API = "https://api.anthropic.com/v1/messages";
+export const draftConfigured = configured;
+export const draftModel = model;
 
 const SCHEMA_DOC = `
 Script = {
@@ -72,10 +67,6 @@ Never write the script as text and never use null — leave a key out instead. N
 SCHEMA
 ${SCHEMA_DOC}`;
 
-type Block = { type: string; text?: string; id?: string; name?: string; input?: unknown; [k: string]: unknown };
-type Msg = { role: "user" | "assistant"; content: string | Block[] };
-type Reply = { content: Block[]; stop_reason: string; usage?: { server_tool_use?: { web_search_requests?: number } } };
-
 /** The script is handed over through this tool: valid JSON by construction, so no fence-hunting and no "fix your JSON" rounds. */
 const PUBLISH = {
   name: "publish_script",
@@ -90,34 +81,17 @@ const PUBLISH = {
   },
 };
 
-class ApiError extends Error {
-  constructor(public status: number, public body: string) {
-    super(`Claude API ${status}: ${body.slice(0, 400)}`);
-  }
-}
-
 type CallOpts = { search?: boolean; force?: boolean; maxTokens?: number };
-const call = async (messages: Msg[], opts: CallOpts = {}): Promise<Reply> => {
-  const tools: unknown[] = [];
-  if (opts.search) tools.push({ type: "web_search_20250305", name: "web_search", max_uses: 10 });
-  tools.push(PUBLISH);
-  const res = await fetch(API, {
-    method: "POST",
-    headers: { "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({
-      model: draftModel(),
-      max_tokens: opts.maxTokens ?? 12000,
-      system: SYSTEM,
-      messages,
-      tools,
-      tool_choice: opts.force ? { type: "tool", name: PUBLISH.name } : { type: "auto" },
-    }),
+/** `force` asks for the tool call outright; the shared client turns it into "auto" on models that refuse forcing. */
+const call = (messages: Msg[], opts: CallOpts = {}): Promise<Reply> =>
+  claude({
+    max_tokens: opts.maxTokens ?? 12000,
+    system: SYSTEM,
+    messages,
+    tools: [...(opts.search ? [{ type: "web_search_20250305", name: "web_search", max_uses: 10 }] : []), PUBLISH],
+    tool_choice: opts.force ? { type: "tool", name: PUBLISH.name } : { type: "auto" },
   });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
-  return (await res.json()) as Reply;
-};
 
-const textOf = (blocks: Block[]) => blocks.filter((b) => b.type === "text" && typeof b.text === "string").map((b) => b.text as string).join("");
 const fence = (text: string, lang: string): string | null => {
   const re = new RegExp("```" + lang + "\\s*\\n([\\s\\S]*?)```", "g");
   let m: RegExpExecArray | null, last: string | null = null;
@@ -129,8 +103,8 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 type Handed = { toolUseId?: string; script: unknown; research: string };
 /** What the model handed in: the publish_script call, or (old habit) a ```json block in its text. */
 const handedIn = (reply: Reply): Handed | null => {
-  const tu = reply.content.find((b) => b.type === "tool_use" && b.name === PUBLISH.name);
-  if (tu && isObj(tu.input) && (isObj(tu.input.script) || Array.isArray(tu.input.scenes))) {
+  const tu = toolInput(reply, PUBLISH.name);
+  if (tu && (isObj(tu.input.script) || Array.isArray(tu.input.scenes))) {
     const inp = tu.input;
     const research = typeof inp.research === "string" ? inp.research : typeof inp.notes === "string" ? inp.notes : "";
     return { toolUseId: tu.id, script: isObj(inp.script) ? inp.script : inp, research };
