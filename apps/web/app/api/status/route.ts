@@ -9,6 +9,7 @@ export async function GET() {
     model: draftModel(),
     elevenlabs: !!process.env.ELEVENLABS_API_KEY,
     openai: !!process.env.OPENAI_API_KEY,
+    youtube: !!process.env.YOUTUBE_API_KEY,
     edge: true,
   });
 }

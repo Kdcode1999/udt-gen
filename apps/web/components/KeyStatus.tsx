@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type S = { anthropic: boolean; elevenlabs: boolean; openai: boolean; model: string };
+type S = { anthropic: boolean; elevenlabs: boolean; openai: boolean; youtube: boolean; model: string };
 
 export function KeyStatus() {
   const [s, setS] = useState<S | null>(null);
@@ -19,6 +19,7 @@ export function KeyStatus() {
     <span className="flex items-center gap-1.5">
       <Chip ok={s.elevenlabs} label="voice" hint={s.elevenlabs ? "ELEVENLABS_API_KEY loaded" : "ELEVENLABS_API_KEY not set in the window that started the app — free Edge voice still works"} />
       <Chip ok={s.openai} label="images" hint={s.openai ? "OPENAI_API_KEY loaded" : "OPENAI_API_KEY not set — image scenes render as caption plates"} />
+      <Chip ok={s.youtube} label="youtube" hint={s.youtube ? "YOUTUBE_API_KEY loaded — fan comments feed the topic radar" : "YOUTUBE_API_KEY not set — radar runs on Reddit + news only"} />
       <Chip ok={s.anthropic} label="ai draft" hint={s.anthropic ? `ANTHROPIC_API_KEY loaded · ${s.model}` : "ANTHROPIC_API_KEY not set in the window that started the app"} />
     </span>
   );
