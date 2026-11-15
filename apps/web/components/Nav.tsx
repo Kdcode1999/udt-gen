@@ -17,6 +17,9 @@ export function Nav() {
           <span className="px-2.5 py-1 rounded-md bg-[var(--surface-2)] font-semibold mono text-xs">{slug}</span>
         </>
       )}
+      <Link href="/radar" className={`px-2.5 py-1 rounded-md ${path.startsWith("/radar") ? "bg-[var(--surface-2)] text-[var(--fg)] font-semibold" : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-2)]"}`}>
+        Topics
+      </Link>
       <a href="https://github.com/Kdcode1999/udt-gen" target="_blank" rel="noreferrer" className="px-2.5 py-1 rounded-md text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-2)]">
         Repo ↗
       </a>

@@ -75,6 +75,9 @@ export function Home({ videos }: { videos: VideoSummary[] }) {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search titles…" className="!w-64" />
         <div className="ml-auto flex items-center gap-3 text-xs text-[var(--muted)]">
           {lastRender && mounted ? <span>last render {ago(lastRender)}</span> : null}
+          <Link href="/radar" className="btn">
+            Find a topic
+          </Link>
           <button className="btn btn-red" onClick={() => setOpen(true)}>
             + New video
           </button>
