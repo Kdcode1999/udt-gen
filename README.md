@@ -37,6 +37,11 @@ The terminal's first line says which keys came from `.env` and which are still m
 Videos list → open one (or **New video**) → edit scenes in forms, upload images/clips, watch the live preview on the right → **Voice** → **Stills** → **Render** → **Download MP4**. Everything it writes goes to `videos/<slug>/`, the same files the CLI uses, so the two are interchangeable.
 The tactical board has a click-to-place pitch: select a player row, click the pitch; select a step, add moves/arrows/zones the same way.
 
+### Topics (topic radar)
+
+**Topics** in the header scans what United fans are arguing about right now — comments under the big United YouTube channels, r/reddevils and r/soccer, the headlines behind them, plus a web check of X/TikTok — and ranks eight video-worthy topics with a hook word, why-now, angle and a brief. **Draft this →** sends one straight into research & draft.
+Every scan is saved under `videos/.radar/scans/` (the last 60), so the page keeps a history: pick any past scan from the row under the button, ★ keeps a topic on the **Kept** list for later, and a topic you drafted shows **Drafted · open →** linking to its video.
+
 ## Make a video (CLI)
 
 ```powershell

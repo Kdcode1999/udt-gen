@@ -13,3 +13,6 @@ Thumbs.db
 .next/
 next-env.d.ts
 *.tsbuildinfo
+videos/.radar/
+videos/.radar.json
+videos/.radar-channels.json

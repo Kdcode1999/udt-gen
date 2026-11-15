@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
-import { buildRadar, readRadar } from "@/lib/radar";
+import { buildRadar } from "@/lib/radar";
+import { listKept, listScans, readScan } from "@/lib/radarStore";
 import { latestJob, startAsyncJob } from "@/lib/jobs";
 import { draftConfigured } from "@/lib/draft";
 
 export const dynamic = "force-dynamic";
 const SLUG = "radar"; // pseudo-slug for the job registry
 
-export async function GET() {
-  const radar = readRadar();
-  return NextResponse.json({ radar, job: latestJob(SLUG), configured: draftConfigured() });
+/** GET /api/radar[?scan=<id>] → the scan history, one scan (newest by default), the kept list and the running job. */
+export async function GET(req: Request) {
+  const id = new URL(req.url).searchParams.get("scan");
+  return NextResponse.json({ scans: listScans(), radar: readScan(id), kept: listKept(), job: latestJob(SLUG), configured: draftConfigured() });
 }
 
 export async function POST() {

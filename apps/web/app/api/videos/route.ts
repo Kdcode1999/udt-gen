@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createVideo, listVideos, writeScript } from "@/lib/store";
 import { runCli, startAsyncJob } from "@/lib/jobs";
 import { draftConfigured, draftScript, writeResearch } from "@/lib/draft";
+import { isScanId, markDrafted } from "@/lib/radarStore";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +11,13 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { title?: string; from?: string; draft?: boolean; brief?: string; lengthSec?: number; series?: string };
+  const body = (await req.json().catch(() => ({}))) as { title?: string; from?: string; draft?: boolean; brief?: string; lengthSec?: number; series?: string; radar?: { scanId?: string; index?: number } };
   const title = (body.title ?? "").trim();
   if (!title) return NextResponse.json({ error: "title required" }, { status: 400 });
   try {
     const slug = createVideo(title, body.from);
+    // started from a radar topic → mark it on that scan so the Topics page links here
+    if (body.radar && isScanId(body.radar.scanId) && Number.isInteger(body.radar.index)) markDrafted({ scanId: body.radar.scanId, index: body.radar.index as number }, slug);
     if (body.draft) {
       if (!draftConfigured()) return NextResponse.json({ error: "ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page" }, { status: 400 });
       const lengthSec = Math.min(180, Math.max(30, Number(body.lengthSec) || 60));

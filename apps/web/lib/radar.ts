@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { VIDEOS_DIR } from "./store";
 import { draftModel } from "./draft";
+import { saveScan, type Scan } from "./radarStore";
 
 export type RadarTopic = {
   title: string;
@@ -18,17 +19,10 @@ export type RadarTopic = {
   series: string;
   sources: { title: string; url: string }[];
   signals: string; // e.g. "Reddit: 6 threads, 4.2k upvotes · News: 9 headlines"
+  drafted?: { slug: string; at: string }; // set once a video is started from this topic
+  kept?: boolean; // ★ on the saved list (derived when read)
 };
 export type Radar = { generatedAt: string; topics: RadarTopic[]; counts: { reddit: number; news: number; youtube: number; ytComments: number } };
-
-const CACHE = path.join(VIDEOS_DIR, ".radar.json");
-export const readRadar = (): Radar | null => {
-  try {
-    return JSON.parse(fs.readFileSync(CACHE, "utf8")) as Radar;
-  } catch {
-    return null;
-  }
-};
 
 type RedditPost = { title: string; score: number; comments: number; url: string; sub: string; ageH: number };
 const UA = "utd-gen/0.1 (topic radar for a fan page)";
@@ -301,7 +295,7 @@ export const rankWithClaude = async (system: string, user: string, report: (m: s
   return got;
 };
 
-export const buildRadar = async (report: (m: string) => void): Promise<Radar> => {
+export const buildRadar = async (report: (m: string) => void): Promise<Scan> => {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page");
   report("reading r/reddevils and r/soccer…");
   const [rd1, rd2, soc, news, ytv] = await Promise.all([fetchReddit("reddevils", "hot", false), fetchReddit("reddevils", "top", false), fetchReddit("soccer", "hot", true), fetchNews(), fetchYouTube(report)]);
@@ -348,8 +342,7 @@ Only topics grounded in the signals; no invented events.`;
     })),
     counts: { reddit: reddit.length, news: news.length, youtube: ytv.length, ytComments: ytv.reduce((a, v) => a + v.comments.length, 0) },
   };
-  fs.mkdirSync(VIDEOS_DIR, { recursive: true });
-  fs.writeFileSync(CACHE, JSON.stringify(radar, null, 2));
-  report(`radar ready: ${radar.topics.length} topics`);
-  return radar;
+  const scan = saveScan(radar);
+  report(`radar ready: ${radar.topics.length} topics · saved as scan ${scan.id}`);
+  return scan;
 };
