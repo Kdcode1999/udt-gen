@@ -29,11 +29,20 @@ export const parseDotenv = (text: string): Record<string, string> => {
 };
 
 /**
- * Load `<root>/.env.local` then `<root>/.env` into process.env without overriding anything the
- * window already set. Returns the names that came from the files (for a one-line startup log).
+ * Keys whose current value came from the file (so a later edit of the file may replace them).
+ * Kept on the process, not the module: Next.js loads this module once for the startup hook and again
+ * for the routes, and both must agree on where a value came from.
+ */
+const fromFile: Set<string> = ((globalThis as unknown as { __utdEnvFromFile?: Set<string> }).__utdEnvFromFile ??= new Set<string>());
+
+/**
+ * Load `<root>/.env.local` then `<root>/.env` into process.env. A value the window set always wins;
+ * values that came from the file follow the file, so editing `.env` and saving is enough — no restart.
+ * Returns the names that came from the files (for a one-line startup log).
  */
 export const loadDotenv = (root: string): { file: string | null; loaded: string[] } => {
   const loaded: string[] = [];
+  const seen = new Set<string>();
   let file: string | null = null;
   for (const name of [".env.local", ".env"]) {
     const p = path.join(root, name);
@@ -46,10 +55,19 @@ export const loadDotenv = (root: string): { file: string | null; loaded: string[
       continue;
     }
     for (const [k, v] of Object.entries(parseDotenv(text))) {
-      if (process.env[k]) continue; // window / real environment wins
-      process.env[k] = v;
+      if (seen.has(k)) continue; // .env.local already supplied it
+      seen.add(k);
+      if (process.env[k] && !fromFile.has(k)) continue; // window / real environment wins
+      if (process.env[k] !== v) process.env[k] = v;
+      fromFile.add(k);
       loaded.push(k);
     }
+  }
+  // a key removed from the file goes away too (only if the file was its source)
+  for (const k of [...fromFile]) {
+    if (seen.has(k)) continue;
+    delete process.env[k];
+    fromFile.delete(k);
   }
   return { file, loaded };
 };

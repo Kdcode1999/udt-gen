@@ -4,6 +4,13 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { PKG_DIR, videoDir } from "./store";
+import { refreshKeys } from "./env";
+
+/** process.env after a fresh look at .env, so a key edited in the file reaches the next Voice / Render / Images run. */
+const currentEnv = () => {
+  refreshKeys(true);
+  return process.env;
+};
 
 export type JobKind = "vo" | "render" | "stills" | "draft" | "images" | "post" | "radar";
 export type JobStatus = "running" | "done" | "failed";
@@ -62,7 +69,7 @@ export const startJob = (slug: string, kind: JobKind, args: string[] = []): Job 
   const child = spawn("pnpm", [script, slug, ...args], {
     cwd: PKG_DIR,
     shell: process.platform === "win32",
-    env: { ...process.env, FORCE_COLOR: "0", UTD_VIDEOS_DIR: path.dirname(dir) },
+    env: { ...currentEnv(), FORCE_COLOR: "0", UTD_VIDEOS_DIR: path.dirname(dir) },
   });
   const log = fs.createWriteStream(logFile);
   let firstError: string | null = null;
@@ -136,7 +143,7 @@ export const startAsyncJob = (slug: string, kind: JobKind, fn: (report: (m: stri
 export const runCli = (slug: string, script: "vo" | "render" | "still" | "images" | "post", args: string[], report: (m: string) => void): Promise<number> =>
   new Promise((resolve) => {
     const dir = videoDir(slug);
-    const child = spawn("pnpm", [script, slug, ...args], { cwd: PKG_DIR, shell: process.platform === "win32", env: { ...process.env, FORCE_COLOR: "0", UTD_VIDEOS_DIR: path.dirname(dir) } });
+    const child = spawn("pnpm", [script, slug, ...args], { cwd: PKG_DIR, shell: process.platform === "win32", env: { ...currentEnv(), FORCE_COLOR: "0", UTD_VIDEOS_DIR: path.dirname(dir) } });
     const onData = (buf: Buffer) => {
       for (const line of buf.toString().replace(ANSI, "").split(/\r?\n/)) {
         const l = line.trim();

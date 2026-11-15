@@ -14,10 +14,10 @@ export const loadKeys = () => {
 };
 
 let last = 0;
-/** Re-read .env for keys that are still missing (never overrides a set one). Throttled to once per 2 s. */
-export const refreshKeys = () => {
+/** Re-read .env (added, changed or removed keys follow the file; window variables still win). Throttled to once per 2 s. */
+export const refreshKeys = (force = false) => {
   const now = Date.now();
-  if (now - last < 2000) return;
+  if (!force && now - last < 2000) return;
   last = now;
-  if (missingKeys().length) loadDotenv(root());
+  loadDotenv(root());
 };

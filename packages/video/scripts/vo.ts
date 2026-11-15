@@ -41,6 +41,12 @@ const elevenlabs = async (text: string, opts: { voiceId: string; modelId: string
     if (res.status === 402 && body.includes("library voices")) {
       throw new Error(`ElevenLabs: this voice is a Library voice, which the Free plan cannot use via the API.\n  Either pick a premade voice (run: pnpm vo --voices) or upgrade to Starter.`);
     }
+    if (/api_key_id_used_as_api_key/.test(body)) {
+      throw new Error("ElevenLabs: the value in ELEVENLABS_API_KEY is a key ID, not the key. ElevenLabs shows the real key (it starts with sk_) only once, when you create it: Developers → API Keys → Create API Key, copy the sk_ value into .env, save, then run Voice again.");
+    }
+    if (res.status === 401 || /invalid_api_key|authentication_error/.test(body)) {
+      throw new Error("ElevenLabs rejected the key in ELEVENLABS_API_KEY (invalid or revoked). Create a new key (Developers → API Keys), paste the sk_ value into .env, save, then run Voice again.");
+    }
     throw new Error(`ElevenLabs ${res.status}: ${body}`);
   }
   const json = (await res.json()) as {
