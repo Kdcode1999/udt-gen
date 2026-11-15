@@ -61,7 +61,7 @@ export function Radar() {
           <h1 className="display leading-[.92] mt-2" style={{ fontSize: "clamp(44px, 6vw, 80px)" }}>
             What the fans are <span className="text-[var(--red)]">arguing</span> about
           </h1>
-          <p className="mt-3 max-w-xl text-[var(--muted)] text-sm">Fan comments under the big United YouTube channels, r/reddevils and r/soccer threads, the headlines behind them, and a look at X — ranked by heat. Pick one and it goes straight into research &amp; draft.</p>
+          <p className="mt-3 max-w-xl text-[var(--muted)] text-sm">Fan comments under the big United YouTube channels, r/reddevils and r/soccer threads, the headlines behind them, plus a web check of X and TikTok — ranked by heat. Pick one and it goes straight into research &amp; draft.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-xs text-[var(--muted)]">
@@ -78,7 +78,11 @@ export function Radar() {
         </div>
       </section>
 
-      {!configured && <div className="mt-4 text-sm text-[var(--red)]">Set ANTHROPIC_API_KEY in the window that runs the app to use the radar.</div>}
+      {!configured && (
+        <div className="mt-4 text-sm text-[var(--red)]">
+          The radar needs the Claude key. Put <code className="mono">ANTHROPIC_API_KEY=…</code> in the <code className="mono">.env</code> file at the repo root (copy <code className="mono">.env.example</code>), then refresh this page.
+        </div>
+      )}
       {err && <div className="mt-4 text-sm text-[var(--red)]">{err}</div>}
       <div className="mt-4">
         <JobPanel
@@ -93,7 +97,7 @@ export function Radar() {
       {data && (
         <>
           <div className="mt-4 text-xs text-[var(--muted)]">
-            Scanned {ago(data.generatedAt)} · {data.counts.reddit} Reddit threads · {data.counts.news} headlines · {data.counts.ytComments ? `${data.counts.ytComments} YouTube comments from ${data.counts.youtube} videos` : "YouTube off (set YOUTUBE_API_KEY)"}
+            Scanned {ago(data.generatedAt)} · {data.counts.reddit} Reddit threads · {data.counts.news} headlines · {data.counts.ytComments ? `${data.counts.ytComments} YouTube comments from ${data.counts.youtube} videos` : "YouTube off (add YOUTUBE_API_KEY to .env)"}
           </div>
           <section className="mt-4 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
             {data.topics.map((t, i) => (

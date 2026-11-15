@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   try {
     const slug = createVideo(title, body.from);
     if (body.draft) {
-      if (!draftConfigured()) return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set on the machine running the app" }, { status: 400 });
+      if (!draftConfigured()) return NextResponse.json({ error: "ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page" }, { status: 400 });
       const lengthSec = Math.min(180, Math.max(30, Number(body.lengthSec) || 60));
       const job = startAsyncJob(slug, "draft", async (report) => {
         const { script, research } = await draftScript({ slug, title, brief: body.brief ?? "", lengthSec, series: body.series }, report);

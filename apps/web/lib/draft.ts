@@ -1,11 +1,15 @@
 // AI drafting: brief → researched script.json + research.md, via the Claude API with live web search.
 // Needs ANTHROPIC_API_KEY in the environment. Model via UTD_DRAFT_MODEL (default claude-sonnet-5-5).
+import { refreshKeys } from "@/lib/env";
 import fs from "node:fs";
 import path from "node:path";
 import { Script, type Script as ScriptT } from "@utd/video/schema";
 import { videoDir } from "./store";
 
-export const draftConfigured = () => !!process.env.ANTHROPIC_API_KEY;
+export const draftConfigured = () => {
+  if (!process.env.ANTHROPIC_API_KEY) refreshKeys();
+  return !!process.env.ANTHROPIC_API_KEY;
+};
 export const draftModel = () => process.env.UTD_DRAFT_MODEL ?? "claude-sonnet-5-5";
 
 const API = "https://api.anthropic.com/v1/messages";

@@ -8,7 +8,7 @@ type Ctx = { params: Promise<{ slug: string }> };
 export async function POST(req: Request, { params }: Ctx) {
   const { slug } = await params;
   if (!isSlug(slug)) return NextResponse.json({ error: "bad slug" }, { status: 400 });
-  if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: "OPENAI_API_KEY is not set on the machine running the app" }, { status: 400 });
+  if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: "OPENAI_API_KEY is missing — add it to the .env file at the repo root and refresh the page" }, { status: 400 });
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const args: string[] = [];
   if (body.force) args.push("--force");

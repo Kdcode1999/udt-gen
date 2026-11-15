@@ -4,10 +4,14 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { Script, VoManifest, type Script as ScriptT, type VoManifest as VoManifestT } from "../src/schema";
+import { loadDotenv } from "../src/env";
 
 export const PKG_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const REPO_DIR = path.resolve(PKG_DIR, "..", "..");
 export const ENTRY = path.join(PKG_DIR, "src", "index.ts");
+
+// Keys from <repo>/.env (the window's own variables win). Runs once, before any script reads process.env.
+loadDotenv(REPO_DIR);
 
 /** Root folder holding one sub-folder per video. Override with UTD_VIDEOS_DIR (Modal volume). */
 export const VIDEOS_DIR = process.env.UTD_VIDEOS_DIR ? path.resolve(process.env.UTD_VIDEOS_DIR) : path.join(REPO_DIR, "videos");

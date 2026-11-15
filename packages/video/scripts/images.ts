@@ -60,7 +60,7 @@ const callImages = async (model: string, prompt: string, size: Size): Promise<Bu
 const MODEL_CHAIN = [process.env.UTD_IMAGE_MODEL, "gpt-image-2", "gpt-image-1.5", "gpt-image-1-mini"].filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
 
 const generate = async (prompt: string, size: Size): Promise<Buffer> => {
-  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not set — set it in the window that runs the app, then run Images again");
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is missing — add it to the .env file at the repo root, then run Images again");
   let lastErr: Error | null = null;
   for (const model of MODEL_CHAIN) {
     try {

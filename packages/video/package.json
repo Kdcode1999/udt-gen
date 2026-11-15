@@ -38,7 +38,8 @@
     "./schema": "./src/schema.ts",
     "./timing": "./src/timing.ts",
     "./brand": "./src/brand.ts",
-    "./fonts": "./src/fonts/data.ts"
+    "./fonts": "./src/fonts/data.ts",
+    "./env": "./src/env.ts"
   },
   "types": "./src/lib.ts"
 }

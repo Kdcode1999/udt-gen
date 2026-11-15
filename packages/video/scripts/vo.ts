@@ -19,7 +19,7 @@ type Synth = { audio: Buffer; words: Word[]; duration?: number };
 // ---- ElevenLabs ------------------------------------------------------------
 const elevenlabs = async (text: string, opts: { voiceId: string; modelId: string; stability?: number; similarity?: number; style?: number; speed?: number }): Promise<Synth> => {
   const key = process.env.ELEVENLABS_API_KEY;
-  if (!key) throw new Error("ELEVENLABS_API_KEY is not set");
+  if (!key) throw new Error("ELEVENLABS_API_KEY is missing — add it to the .env file at the repo root (or use --provider edge)");
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${opts.voiceId}/with-timestamps?output_format=mp3_44100_128`;
   const res = await fetch(url, {
     method: "POST",
@@ -183,7 +183,7 @@ const edgeNode = async (text: string, voice: string): Promise<Synth> => {
 // ---- list voices -------------------------------------------------------------
 const listVoices = async () => {
   const key = process.env.ELEVENLABS_API_KEY;
-  if (!key) throw new Error("ELEVENLABS_API_KEY is not set");
+  if (!key) throw new Error("ELEVENLABS_API_KEY is missing — add it to the .env file at the repo root (or use --provider edge)");
   const res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": key } });
   if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const { voices } = (await res.json()) as { voices: { voice_id: string; name: string; category: string; labels?: Record<string, string> }[] };

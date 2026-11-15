@@ -18,24 +18,21 @@ corepack enable; corepack prepare pnpm@10 --activate
 git clone <this repo> utd-gen; cd utd-gen; pnpm install
 pip install edge-tts            # free draft voice (optional, ElevenLabs is the real one)
 
-# keys — never commit these
-$env:ELEVENLABS_API_KEY = "..."
-$env:ELEVENLABS_VOICE_ID = "..."   # or put voiceId in script.json
+# keys — once, in a file (git-ignored, never commit it)
+copy .env.example .env; notepad .env     # paste the keys after the = signs, save
 ```
 
-First render downloads Chrome Headless Shell (~100 MB) automatically. To use an existing Chrome instead: `$env:UTD_BROWSER = "C:\Program Files\Google\Chrome\Application\chrome.exe"`.
+`.env` holds `ELEVENLABS_API_KEY` (voice), `ANTHROPIC_API_KEY` (Draft with AI, topic radar, post copy), `OPENAI_API_KEY` (pictures) and `YOUTUBE_API_KEY` (fan comments for the radar — Google Cloud → YouTube Data API v3). The app and every CLI script read it on start, from any window. A `$env:NAME = "..."` set in the window still wins over the file. Added a key? Refresh the page. Changed an existing key? Stop and start `pnpm dev`.
+
+First render downloads Chrome Headless Shell (~100 MB) automatically. To use an existing Chrome instead, add `UTD_BROWSER=C:\Program Files\Google\Chrome\Application\chrome.exe` to `.env`.
 
 ## The UI (easiest)
 
 ```powershell
-$env:ELEVENLABS_API_KEY = "..."      # voice (ElevenLabs)
-$env:ANTHROPIC_API_KEY  = "..."      # Draft with AI (Claude + live web search)
-$env:OPENAI_API_KEY     = "..."      # Images (gpt-image-2 plates + ink-sketch cards)
-$env:YOUTUBE_API_KEY    = "..."      # Topic radar: fan comments under the big United channels (Google Cloud → YouTube Data API v3)
-pnpm dev                              # → http://localhost:3000   — same window as the keys
+pnpm dev                              # → http://localhost:3000
 ```
 
-The header shows a chip per key (voice · images · ai draft). A draft writes an image `prompt` per image scene and per player card; **Images** paints them into `assets/` (runs automatically after a draft when the key is set). An image scene with no file renders as a caption plate, never a blank frame.
+The terminal's first line says which keys came from `.env` and which are still missing. The header shows a chip per key (voice · images · youtube · ai draft). A draft writes an image `prompt` per image scene and per player card; **Images** paints them into `assets/` (runs automatically after a draft when the key is set). An image scene with no file renders as a caption plate, never a blank frame.
 
 Videos list → open one (or **New video**) → edit scenes in forms, upload images/clips, watch the live preview on the right → **Voice** → **Stills** → **Render** → **Download MP4**. Everything it writes goes to `videos/<slug>/`, the same files the CLI uses, so the two are interchangeable.
 The tactical board has a click-to-place pitch: select a player row, click the pitch; select a step, add moves/arrows/zones the same way.

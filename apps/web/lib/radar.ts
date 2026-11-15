@@ -162,7 +162,7 @@ const fetchYouTube = async (report: (m: string) => void): Promise<YtVideo[]> => 
 };
 
 export const buildRadar = async (report: (m: string) => void): Promise<Radar> => {
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set on the machine running the app");
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page");
   report("reading r/reddevils and r/soccer…");
   const [rd1, rd2, soc, news, ytv] = await Promise.all([fetchReddit("reddevils", "hot", false), fetchReddit("reddevils", "top", false), fetchReddit("soccer", "hot", true), fetchNews(), fetchYouTube(report)]);
   const seen = new Set<string>();
