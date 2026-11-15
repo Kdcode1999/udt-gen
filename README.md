@@ -127,6 +127,10 @@ Arrows are smooth curves in pixel space; lines and arrows draw in one after anot
 - `packages/video/assets/sfx/` — shared SFX + music bed. **The bundled ones are synthesised placeholders**; drop a licensed pack in with the same names (`whoosh.mp3`, `hit.mp3`, `tick.mp3`, `riser.mp3`, `bed-placeholder.mp3`).
 - Fonts (Anton, Inter) are embedded; nothing is fetched at render time.
 
+## When a draft goes wrong
+
+The drafter never asks Claude to "fix its JSON". The script arrives through a tool call (valid JSON by construction) and `@utd/video/normalize` makes it schema-true in code: nulls removed, `"72"` → `72`, enums lower-cased and synonyms mapped (`tactical` → `board`), a player's team inferred from its id, ranges clamped; a scene that still cannot be used is shown as a picture with the same voice line. The job log says what was tidied. Only a visually thin draft or a script with no usable scenes goes back to Claude, and a total failure leaves `draft-failed.json` in the video folder with the raw script and the reason.
+
 ## Content rules that keep the page safe
 
 - Broadcast match footage gets matched by Rights Manager whatever you do to it. Use boards, stills, AI plates, your own shots, stock.
