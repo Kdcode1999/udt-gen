@@ -14,7 +14,7 @@ export async function GET() {
 export async function POST() {
   if (!draftConfigured()) return NextResponse.json({ error: "ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page" }, { status: 400 });
   try {
-    const job = startAsyncJob(SLUG, "draft", async (report) => {
+    const job = startAsyncJob(SLUG, "radar", async (report) => {
       await buildRadar(report);
     });
     return NextResponse.json({ job });

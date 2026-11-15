@@ -1,9 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
-export type Job = { id: string; slug: string; kind: "vo" | "render" | "stills" | "draft" | "images" | "post"; status: "running" | "done" | "failed"; progress: number; startedAt: number; endedAt?: number; message: string; exitCode?: number };
+export type Job = { id: string; slug: string; kind: "vo" | "render" | "stills" | "draft" | "images" | "post" | "radar"; status: "running" | "done" | "failed"; progress: number; startedAt: number; endedAt?: number; message: string; exitCode?: number };
 
-const label: Record<Job["kind"], string> = { vo: "Voice", render: "Render", stills: "Stills", draft: "Draft", images: "Images", post: "Post copy" };
+const label: Record<Job["kind"], string> = { vo: "Voice", render: "Render", stills: "Stills", draft: "Draft", images: "Images", post: "Post copy", radar: "Topic scan" };
 
 export const JobPanel: React.FC<{ job: Job | null; onFinished: (job: Job) => void }> = ({ job, onFinished }) => {
   const [live, setLive] = useState<Job | null>(job);

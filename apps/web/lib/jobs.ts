@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PKG_DIR, videoDir } from "./store";
 
-export type JobKind = "vo" | "render" | "stills" | "draft" | "images" | "post";
+export type JobKind = "vo" | "render" | "stills" | "draft" | "images" | "post" | "radar";
 export type JobStatus = "running" | "done" | "failed";
 export type Job = {
   id: string;

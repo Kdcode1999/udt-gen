@@ -1,7 +1,8 @@
 // Topic radar: what Manchester United fans are talking about right now.
-// Signals: r/reddevils + r/soccer (public JSON: titles, upvotes, comments), Google News RSS headlines,
-// and a few live web searches by Claude for the X / TikTok conversation. Claude ranks them into topics
-// with a hook word, why-now, and a brief the drafter can take as is. Cached 30 minutes.
+// Signals: fan comments under the big United YouTube channels (Data API v3), r/reddevils + r/soccer
+// (public JSON with RSS fallback), Google News RSS headlines, and a few live web searches by Claude for
+// the X / TikTok conversation. Claude ranks them into topics with a hook word, why-now, and a brief the
+// drafter can take as is, and hands them back through a strict tool call (never parsed out of prose).
 import fs from "node:fs";
 import path from "node:path";
 import { VIDEOS_DIR } from "./store";
@@ -161,6 +162,145 @@ const fetchYouTube = async (report: (m: string) => void): Promise<YtVideo[]> => 
   return videos;
 };
 
+export const SERIES = ["MATCH DIARY", "TACTICS TALKZ", "TRANSFER WATCH", "THE DEBATE", "PLAYER FOCUS"] as const;
+
+/**
+ * The ranked radar comes back through this tool call, not as text: with `strict` the API guarantees the
+ * tool input is valid JSON in exactly this shape, so a stray quote in a fan comment can no longer break a scan.
+ */
+const PUBLISH_TOOL = {
+  name: "publish_radar",
+  description: "Publish the finished topic radar: exactly 8 topics, hottest first. Call it once, when the ranking is final.",
+  strict: true,
+  input_schema: {
+    type: "object",
+    properties: {
+      topics: {
+        type: "array",
+        description: "Exactly 8 topics, hottest first.",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Headline for the video idea, under 70 characters." },
+            hook: { type: "string", description: "ONE uppercase word (two at most) that creates curiosity; may end with ?. Not a description." },
+            heat: { type: "integer", description: "Fan heat 1-5. 5 = everyone is arguing about it today." },
+            whyNow: { type: "string", description: "One sentence: what happened and when. Quote recurring fan phrasing where it helps." },
+            angle: { type: "string", description: "One sentence: the argument the video makes, not a recap." },
+            brief: { type: "string", description: "2-4 sentences the script writer can use directly: the story, the angle, the facts to verify, what to end on." },
+            series: { type: "string", enum: [...SERIES] },
+            sources: {
+              type: "array",
+              description: "2-4 real links from the signals or your searches.",
+              items: { type: "object", properties: { title: { type: "string" }, url: { type: "string" } }, required: ["title", "url"], additionalProperties: false },
+            },
+            signals: { type: "string", description: 'Short line like "Reddit: 5 threads · 3.1k upvotes · YouTube: 180 comments across 4 videos · News: 7 headlines · X: trending".' },
+          },
+          required: ["title", "hook", "heat", "whyNow", "angle", "brief", "series", "sources", "signals"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["topics"],
+    additionalProperties: false,
+  },
+};
+
+type Block = { type: string; text?: string; name?: string; input?: unknown };
+type Msg = { role: "user" | "assistant"; content: unknown };
+type Reply = { content: Block[]; stop_reason: string };
+
+class ApiError extends Error {
+  constructor(public status: number, public body: string) {
+    super(`Claude API ${status}: ${body.slice(0, 300)}`);
+  }
+}
+
+const claude = async (body: Record<string, unknown>): Promise<Reply> => {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: draftModel(), max_tokens: 8000, ...body }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return (await res.json()) as Reply;
+};
+
+const str = (v: unknown) => (v == null ? "" : String(v)).trim();
+
+/** Pull the publish_radar call out of a reply and normalise it (strict mode makes this a formality; the loose fallbacks need it). */
+const published = (content: Block[]): { topics: RadarTopic[] } | null => {
+  const input = content.find((b) => b.type === "tool_use" && b.name === PUBLISH_TOOL.name)?.input as { topics?: unknown } | undefined;
+  if (!input || !Array.isArray(input.topics) || input.topics.length === 0) return null;
+  const topics = (input.topics as Record<string, unknown>[]).filter((t) => t && typeof t === "object" && str(t.title)).map((t) => ({
+    title: str(t.title),
+    hook: str(t.hook).toUpperCase() || "WHY?",
+    heat: Number(t.heat) || 3,
+    whyNow: str(t.whyNow),
+    angle: str(t.angle),
+    brief: str(t.brief) || str(t.angle),
+    series: str(t.series),
+    sources: Array.isArray(t.sources) ? (t.sources as Record<string, unknown>[]).map((s) => ({ title: str(s?.title), url: str(s?.url) })) : [],
+    signals: str(t.signals),
+  }));
+  return topics.length ? { topics } : null;
+};
+
+/**
+ * Rank the signals with Claude (a few live web searches allowed) and receive the result through publish_radar.
+ * Resilient by construction: strict tool → loose tool if the API refuses strict; forced tool_choice → auto if
+ * refused; and if a turn still ends in prose, a second search-free call that forces the tool call.
+ */
+export const rankWithClaude = async (system: string, user: string, report: (m: string) => void): Promise<{ topics: RadarTopic[] }> => {
+  const webSearch = { type: "web_search_20250305", name: "web_search", max_uses: 4 };
+  let tool: Record<string, unknown> = PUBLISH_TOOL;
+  let choice: Record<string, unknown> = { type: "any" };
+  let messages: Msg[] = [{ role: "user", content: user }];
+  let prose = "";
+  let adjustments = 0;
+
+  for (let turn = 0; turn < 6; turn++) {
+    let reply: Reply;
+    try {
+      reply = await claude({ system, messages, tools: [webSearch, tool], tool_choice: choice });
+    } catch (e) {
+      // The API told us a feature isn't accepted here — drop it and go again rather than fail the scan.
+      if (e instanceof ApiError && e.status === 400 && adjustments < 2) {
+        adjustments++;
+        if (tool.strict && /strict/i.test(e.body)) {
+          const { strict: _drop, ...loose } = tool;
+          tool = loose;
+          turn--;
+          continue;
+        }
+        if (choice.type !== "auto" && /tool_choice/i.test(e.body)) {
+          choice = { type: "auto" };
+          turn--;
+          continue;
+        }
+      }
+      throw e;
+    }
+    const got = published(reply.content);
+    if (got) return got;
+    prose += reply.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
+    if (reply.stop_reason === "pause_turn") {
+      report("still checking the conversation…");
+      messages = [...messages, { role: "assistant", content: reply.content }];
+      continue;
+    }
+    break; // ended without the tool call → structured fallback below
+  }
+
+  report("tidying the ranking…");
+  const handoff = prose.trim()
+    ? `Here is a topic radar written as text. Publish it through the publish_radar tool — same content, just in the tool's shape (fill any missing field sensibly):\n\n${prose}`
+    : `${user}\n\n(No web searches available this time — rank from the signals above and publish through the publish_radar tool.)`;
+  const reply = await claude({ system, messages: [{ role: "user", content: handoff }], tools: [tool], tool_choice: { type: "tool", name: PUBLISH_TOOL.name } });
+  const got = published(reply.content);
+  if (!got) throw new Error("radar: Claude returned no topics");
+  return got;
+};
+
 export const buildRadar = async (report: (m: string) => void): Promise<Radar> => {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page");
   report("reading r/reddevils and r/soccer…");
@@ -186,41 +326,26 @@ ${
 
 Use web_search up to 4 times for what fans are saying on X/Twitter and TikTok in the last 48 hours (e.g. "Man Utd fans reaction", the names trending). Then produce the radar.`;
 
-  const system = `You are the planning editor of "UTD Diaries", a Manchester United analysis page (Reels/TikTok/Shorts, 60–90 s videos with tactical boards, stat cards, quotes and pictures). From the signals, pick the 8 topics fans are talking about MOST right now and that make a good analysis video. Reply with JSON only:
-{"topics": [{"title": string, "hook": string, "heat": 1-5, "whyNow": string, "angle": string, "brief": string, "series": string, "sources": [{"title": string, "url": string}], "signals": string}]}
+  const system = `You are the planning editor of "UTD Diaries", a Manchester United analysis page (Reels/TikTok/Shorts, 60–90 s videos with tactical boards, stat cards, quotes and pictures). From the signals, pick the 8 topics fans are talking about MOST right now and that make a good analysis video, then hand them over by calling the publish_radar tool (that call is the only output that counts — never write the list as text).
 - Rank by fan heat (volume + emotion + recency). heat 5 = everyone is arguing about it today.
 - hook: ONE uppercase word (or two) that creates curiosity, may end with "?". Not a description.
 - whyNow: one sentence — what happened and when.
 - angle: one sentence — the take the video makes (an argument, not a recap).
 - brief: 2–4 sentences the script writer can use directly: the story, the angle, the facts to verify, what to end on.
-- series: one of MATCH DIARY, TACTICS TALKZ, TRANSFER WATCH, THE DEBATE, PLAYER FOCUS.
 - sources: 2–4 real links from the signals or your searches.
 - signals: a short line like "Reddit: 5 threads · 3.1k upvotes · YouTube: 180 comments across 4 videos · News: 7 headlines · X: trending".
 - Weigh YouTube comments heavily: they are fans talking, not journalists. Quote the recurring fan phrasing in whyNow where it helps ("fans keep saying …").
 Only topics grounded in the signals; no invented events.`;
 
-  type Block = { type: string; text?: string };
-  let messages: { role: "user" | "assistant"; content: unknown }[] = [{ role: "user", content: user }];
-  let text = "";
-  for (let i = 0; i < 5; i++) {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: draftModel(), max_tokens: 6000, system, messages, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }] }),
-    });
-    if (!res.ok) throw new Error(`Claude API ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    const json = (await res.json()) as { content: Block[]; stop_reason: string };
-    text = json.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
-    if (json.stop_reason !== "pause_turn") break;
-    report("still checking the conversation…");
-    messages = [...messages, { role: "assistant", content: json.content }];
-  }
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error("radar: no topics returned");
-  const parsed = JSON.parse(m[0]) as { topics: RadarTopic[] };
+  const parsed = await rankWithClaude(system, user, report);
   const radar: Radar = {
     generatedAt: new Date().toISOString(),
-    topics: (parsed.topics ?? []).slice(0, 10).map((t) => ({ ...t, heat: Math.max(1, Math.min(5, Number(t.heat) || 3)), sources: (t.sources ?? []).filter((s) => s?.url) })),
+    topics: parsed.topics.slice(0, 10).map((t) => ({
+      ...t,
+      heat: Math.max(1, Math.min(5, Math.round(Number(t.heat)) || 3)),
+      series: SERIES.find((s) => s.toLowerCase() === String(t.series).trim().toLowerCase()) ?? "THE DEBATE",
+      sources: (t.sources ?? []).filter((s) => s?.url && /^https?:\/\//i.test(s.url)),
+    })),
     counts: { reddit: reddit.length, news: news.length, youtube: ytv.length, ytComments: ytv.reduce((a, v) => a + v.comments.length, 0) },
   };
   fs.mkdirSync(VIDEOS_DIR, { recursive: true });
