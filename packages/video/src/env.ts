@@ -40,8 +40,9 @@ const fromFile: Set<string> = ((globalThis as unknown as { __utdEnvFromFile?: Se
  * values that came from the file follow the file, so editing `.env` and saving is enough — no restart.
  * Returns the names that came from the files (for a one-line startup log).
  */
-export const loadDotenv = (root: string): { file: string | null; loaded: string[] } => {
+export const loadDotenv = (root: string): { file: string | null; loaded: string[]; overridden: string[] } => {
   const loaded: string[] = [];
+  const overridden: string[] = []; // in the file, but the window holds a different value (the window wins)
   const seen = new Set<string>();
   let file: string | null = null;
   for (const name of [".env.local", ".env"]) {
@@ -57,7 +58,10 @@ export const loadDotenv = (root: string): { file: string | null; loaded: string[
     for (const [k, v] of Object.entries(parseDotenv(text))) {
       if (seen.has(k)) continue; // .env.local already supplied it
       seen.add(k);
-      if (process.env[k] && !fromFile.has(k)) continue; // window / real environment wins
+      if (process.env[k] && !fromFile.has(k)) {
+        if (process.env[k] !== v) overridden.push(k);
+        continue; // window / real environment wins
+      }
       if (process.env[k] !== v) process.env[k] = v;
       fromFile.add(k);
       loaded.push(k);
@@ -69,8 +73,11 @@ export const loadDotenv = (root: string): { file: string | null; loaded: string[
     delete process.env[k];
     fromFile.delete(k);
   }
-  return { file, loaded };
+  return { file, loaded, overridden };
 };
+
+/** Keys the window overrides with a value different from the file's (as of the last load). */
+export const windowOverrides = (root: string): string[] => loadDotenv(root).overridden;
 
 /** The keys the app cares about, so startup can say which are still missing. */
 export const KNOWN_KEYS = ["ELEVENLABS_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "YOUTUBE_API_KEY"] as const;
