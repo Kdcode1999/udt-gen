@@ -27,7 +27,7 @@ export function KeyStatus() {
       <Chip env="ELEVENLABS_API_KEY" ok={s.elevenlabs} label="voice" hint={s.elevenlabs ? "ELEVENLABS_API_KEY loaded" : `ELEVENLABS_API_KEY missing — ${FIX} (free Edge voice still works)`} />
       <Chip env="OPENAI_API_KEY" ok={s.openai} label="images" hint={s.openai ? "OPENAI_API_KEY loaded" : `OPENAI_API_KEY missing — ${FIX} (image scenes render as caption plates until then)`} />
       <Chip env="YOUTUBE_API_KEY" ok={s.youtube} label="youtube" hint={s.youtube ? "YOUTUBE_API_KEY loaded — fan comments feed the topic radar" : `YOUTUBE_API_KEY missing — ${FIX} (radar runs on Reddit + news only until then)`} />
-      <Chip env="ANTHROPIC_API_KEY" ok={s.anthropic} label="ai draft" hint={s.anthropic ? `ANTHROPIC_API_KEY loaded · ${s.model}` : `ANTHROPIC_API_KEY missing — ${FIX}`} />
+      <Chip env="ANTHROPIC_API_KEY" ok={s.anthropic} label="ai draft" hint={s.anthropic ? `drafting with ${s.model}` : `no AI key — add OPENAI_API_KEY or ANTHROPIC_API_KEY to .env`} />
     </span>
   );
 }

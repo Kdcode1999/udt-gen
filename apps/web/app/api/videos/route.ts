@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     // started from a radar topic → mark it on that scan so the Topics page links here
     if (body.radar && isScanId(body.radar.scanId) && Number.isInteger(body.radar.index)) markDrafted({ scanId: body.radar.scanId, index: body.radar.index as number }, slug);
     if (body.draft) {
-      if (!draftConfigured()) return NextResponse.json({ error: "ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page" }, { status: 400 });
+      if (!draftConfigured()) return NextResponse.json({ error: "No AI key — add OPENAI_API_KEY (or ANTHROPIC_API_KEY) to the .env file at the repo root" }, { status: 400 });
       const lengthSec = Math.min(180, Math.max(30, Number(body.lengthSec) || 60));
       const job = startAsyncJob(slug, "draft", async (report) => {
         const { script, research } = await draftScript({ slug, title, brief: body.brief ?? "", lengthSec, series: body.series }, report);

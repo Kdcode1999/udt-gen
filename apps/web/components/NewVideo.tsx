@@ -74,7 +74,7 @@ export function NewVideoModal({ templates, open, onClose }: { templates: Templat
         <div className="grid grid-cols-3 gap-2">
           {(
             [
-              ["draft", "Draft with AI", ai?.configured ? `Claude researches it live and writes every scene (${ai.model})` : "Add ANTHROPIC_API_KEY to the .env file to enable"],
+              ["draft", "Draft with AI", ai?.configured ? `AI researches it live and writes every scene (${ai.model})` : "Add OPENAI_API_KEY or ANTHROPIC_API_KEY to the .env file to enable"],
               ["blank", "Blank", "Hook + follow card, you write the rest"],
               ["copy", "Copy", "Start from an existing video"],
             ] as const

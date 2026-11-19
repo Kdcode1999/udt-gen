@@ -293,7 +293,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
                 Repaint all pictures
               </button>
             </Section>
-            <Section title="Draft with AI" right={<span className="text-xs text-[var(--muted)]">{draftOk ? "Claude + live web search" : "add ANTHROPIC_API_KEY to .env and refresh the page"}</span>}>
+            <Section title="Draft with AI" right={<span className="text-xs text-[var(--muted)]">{draftOk ? "AI + live web search" : "add OPENAI_API_KEY or ANTHROPIC_API_KEY to .env"}</span>}>
               <textarea rows={4} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Brief: topic, angle, what you already know. This replaces the current scenes with a researched draft." disabled={!draftOk} />
               <div className="flex items-center gap-2 flex-wrap">
                 {[45, 60, 90, 120].map((n) => (

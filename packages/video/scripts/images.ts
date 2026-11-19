@@ -8,6 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Script } from "../src/schema";
 import { hashText, loadScript, log, parseArgs, videoDir } from "./lib";
+import { aiText } from "../src/ai";
 
 type Style = "plate" | "sketch" | "photo";
 
@@ -91,8 +92,6 @@ const generateSafe = async (subject: string, style: Style, size: Size): Promise<
 
 /** Work out what the picture should be from the scene's context — no human input needed. */
 const inferImageSpec = async (script: Script, i: number, research: string): Promise<{ prompt: string; caption?: string; style?: Style } | null> => {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
   const sc = script.scenes[i];
   if (sc.type !== "image") return null;
   const ctx = (j: number) => {
@@ -100,37 +99,23 @@ const inferImageSpec = async (script: Script, i: number, research: string): Prom
     return x ? `scene ${j + 1} (${x.type}): ${"vo" in x && x.vo ? x.vo : ""}` : "";
   };
   const instructionLike = /drop in|licensed|footage|photo of|placeholder|insert/i.test(sc.caption ?? "");
-  const body = {
-    model: process.env.UTD_DRAFT_MODEL ?? "claude-sonnet-5-5",
-    max_tokens: 400,
-    system:
+  const text = await aiText(
       "You brief an illustrator for a Manchester United short-video page. Reply with JSON only: {\"prompt\": string, \"caption\": string, \"style\": \"plate\"|\"sketch\"|\"photo\"}. " +
       "prompt = one or two sentences describing a single strong picture for this scene: specific subject (named people are fine), setting, moment, mood; no text or logos in the picture. " +
       "style: sketch for a portrait of one person, photo for a realistic scene, plate for an atmospheric/cinematic composition. " +
       "caption = 3–6 word UPPERCASE on-screen headline for the scene (keep the existing caption if it already is a good headline).",
-    messages: [
-      {
-        role: "user",
-        content: `Video: ${script.title}${script.series ? ` (${script.series})` : ""}
+    `Video: ${script.title}${script.series ? ` (${script.series})` : ""}
 Image scene ${i + 1} voice-over: ${sc.vo ?? "(none)"}
 Existing caption: ${sc.caption ?? "(none)"}${instructionLike ? "  ← this is an instruction, not a headline; write a real one" : ""}
 Before: ${ctx(i - 1)}
 After: ${ctx(i + 1)}
 ${research ? `Research notes (facts to stay consistent with):\n${research.slice(0, 2500)}` : ""}`,
-      },
-    ],
-  };
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    log(`image brief: Claude ${res.status} — falling back to caption`);
+    { maxTokens: 400 },
+  );
+  if (!text) {
+    log("image brief: no AI answer — falling back to caption");
     return null;
   }
-  const json = (await res.json()) as { content: { type: string; text?: string }[] };
-  const text = json.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) return null;
   try {
@@ -148,32 +133,7 @@ ${research ? `Research notes (facts to stay consistent with):\n${research.slice(
 // This is how pictures stay current without copying anyone's photo.
 type AppearanceCache = Record<string, { brief: string; at: string }>;
 
-const claudeText = async (system: string, user: string, tools: boolean, maxTokens = 500): Promise<string | null> => {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
-  let messages: { role: "user" | "assistant"; content: unknown }[] = [{ role: "user", content: user }];
-  for (let i = 0; i < 4; i++) {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({
-        model: process.env.UTD_DRAFT_MODEL ?? "claude-sonnet-5-5",
-        max_tokens: maxTokens,
-        system,
-        messages,
-        ...(tools ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }] } : {}),
-      }),
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as { content: { type: string; text?: string }[]; stop_reason: string };
-    if (json.stop_reason === "pause_turn") {
-      messages = [...messages, { role: "assistant", content: json.content }];
-      continue;
-    }
-    return json.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("").trim() || null;
-  }
-  return null;
-};
+const claudeText = (system: string, user: string, tools: boolean, maxTokens = 500) => aiText(system, user, { search: tools, maxTokens });
 
 const NAME_RE = /\b([A-Z][\p{L}'’-]+(?:\s+(?:de|da|van|von|di|le|el|al)\s+)?(?:\s+[A-Z][\p{L}'’-]+){1,2})\b/u;
 const TEAM_RE = /\b(Manchester United|Man United|Man Utd|United|Liverpool|Arsenal|Chelsea|Manchester City|Man City|Tottenham|Spurs|Aston Villa|Newcastle|Everton|Real Madrid|Barcelona|Bayern|PSG|Juventus|Inter|AC Milan)\b/;

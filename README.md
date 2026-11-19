@@ -22,7 +22,7 @@ pip install edge-tts            # free draft voice (optional, ElevenLabs is the 
 copy .env.example .env; notepad .env     # paste the keys after the = signs, save
 ```
 
-`.env` holds `ELEVENLABS_API_KEY` (voice), `ANTHROPIC_API_KEY` (Draft with AI, topic radar, post copy), `OPENAI_API_KEY` (pictures) and `YOUTUBE_API_KEY` (fan comments for the radar — Google Cloud → YouTube Data API v3). The app and every CLI script read it on start, from any window. A `$env:NAME = "..."` set in the window still wins over the file. Edit the file and save — the app picks the change up on the next page load or button press, no restart.
+`.env` holds `ELEVENLABS_API_KEY` (voice), `ANTHROPIC_API_KEY` (Draft with AI, topic radar, post copy), `OPENAI_API_KEY` (pictures) and `YOUTUBE_API_KEY` (fan comments for the radar — Google Cloud → YouTube Data API v3). The app and every CLI script read it on start, from any window. Drafting, the topic radar, post copy and the picture planner run on Claude when `ANTHROPIC_API_KEY` is set and has credit, otherwise on OpenAI (`OPENAI_API_KEY`, model `gpt-6.2-sol`, its own web search) — if Claude says it's out of credit mid-session, everything switches to OpenAI automatically. Force one with `UTD_AI=openai`. A `$env:NAME = "..."` set in the window still wins over the file. Edit the file and save — the app picks the change up on the next page load or button press, no restart.
 
 First render downloads Chrome Headless Shell (~100 MB) automatically. To use an existing Chrome instead, add `UTD_BROWSER=C:\Program Files\Google\Chrome\Application\chrome.exe` to `.env`.
 

@@ -3,12 +3,14 @@
 // ("tool"/"any") that the model rejects becomes "auto" for the rest of the process, a rejected
 // `strict` tool definition is retried loose — so a feature gap never fails a job.
 import { refreshKeys } from "@/lib/env";
+import { aiMessages, aiModel, aiProvider, AiError } from "@utd/video/ai";
 
 export const API = "https://api.anthropic.com/v1/messages";
-export const model = () => process.env.UTD_DRAFT_MODEL ?? "claude-sonnet-5-5";
+export const model = () => aiModel();
+export const provider = () => aiProvider();
 export const configured = () => {
-  if (!process.env.ANTHROPIC_API_KEY) refreshKeys();
-  return !!process.env.ANTHROPIC_API_KEY;
+  if (!aiProvider()) refreshKeys();
+  return !!aiProvider();
 };
 
 export type Block = { type: string; text?: string; id?: string; name?: string; input?: unknown; [k: string]: unknown };
@@ -38,37 +40,34 @@ export const canForceTool = () => forcedChoiceOk !== false;
 
 /** POST /v1/messages with the house defaults; applies what has been learned, retries once per lesson. */
 export const claude = async (body: Record<string, unknown>): Promise<Reply> => {
-  const b: Record<string, unknown> = { model: model(), max_tokens: 8000, ...body };
+  const b: Record<string, unknown> = { max_tokens: 8000, ...body };
   if (forcedChoiceOk === false && isForced(b.tool_choice)) b.tool_choice = { type: "auto" };
   if (strictOk === false && hasStrict(b.tools)) b.tools = loosen(b.tools);
 
   for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(API, {
-      method: "POST",
-      headers: { "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify(b),
-    });
-    if (res.ok) {
+    try {
+      const r = await aiMessages(b);
       if (isForced(b.tool_choice)) forcedChoiceOk = true;
       if (hasStrict(b.tools)) strictOk = true;
-      return (await res.json()) as Reply;
-    }
-    const text = await res.text();
-    if (res.status === 400) {
-      if (isForced(b.tool_choice) && /tool_choice/i.test(text)) {
-        forcedChoiceOk = false;
-        b.tool_choice = { type: "auto" };
-        continue;
+      return r;
+    } catch (e) {
+      const text = e instanceof AiError ? e.body : "";
+      if (e instanceof AiError && e.status === 400) {
+        if (isForced(b.tool_choice) && /tool_choice/i.test(text)) {
+          forcedChoiceOk = false;
+          b.tool_choice = { type: "auto" };
+          continue;
+        }
+        if (hasStrict(b.tools) && /strict/i.test(text)) {
+          strictOk = false;
+          b.tools = loosen(b.tools);
+          continue;
+        }
       }
-      if (hasStrict(b.tools) && /strict/i.test(text)) {
-        strictOk = false;
-        b.tools = loosen(b.tools);
-        continue;
-      }
+      throw e;
     }
-    throw new ApiError(res.status, text);
   }
-  throw new Error("Claude API: gave up after adjusting the request");
+  throw new Error("AI API: gave up after adjusting the request");
 };
 
 export const textOf = (blocks: Block[]) => blocks.filter((b) => b.type === "text" && typeof b.text === "string").map((b) => b.text as string).join("");

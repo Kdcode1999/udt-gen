@@ -40,7 +40,8 @@
     "./brand": "./src/brand.ts",
     "./fonts": "./src/fonts/data.ts",
     "./env": "./src/env.ts",
-    "./normalize": "./src/normalize.ts"
+    "./normalize": "./src/normalize.ts",
+    "./ai": "./src/ai.ts"
   },
   "types": "./src/lib.ts"
 }

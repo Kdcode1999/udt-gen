@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST() {
-  if (!draftConfigured()) return NextResponse.json({ error: "ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page" }, { status: 400 });
+  if (!draftConfigured()) return NextResponse.json({ error: "No AI key — add OPENAI_API_KEY (or ANTHROPIC_API_KEY) to the .env file at the repo root" }, { status: 400 });
   try {
     const job = startAsyncJob(SLUG, "radar", async (report) => {
       await buildRadar(report);

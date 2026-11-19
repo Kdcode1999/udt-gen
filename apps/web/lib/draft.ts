@@ -1,5 +1,5 @@
 // AI drafting: brief → researched script.json + research.md, via the Claude API with live web search.
-// Needs ANTHROPIC_API_KEY in the environment. Model via UTD_DRAFT_MODEL (default claude-sonnet-5-5).
+// Needs ANTHROPIC_API_KEY or OPENAI_API_KEY (see @utd/video/ai for which one is used).
 import fs from "node:fs";
 import path from "node:path";
 import type { Script as ScriptT } from "@utd/video/schema";
@@ -159,7 +159,7 @@ const short = (list: string[], n = 4) => list.slice(0, n).join(" · ") + (list.l
  * decide: a visually thin draft (once) or a script with no usable scenes (twice).
  */
 export const draftScript = async (input: DraftInput, report: (m: string) => void): Promise<DraftResult> => {
-  if (!draftConfigured()) throw new Error("ANTHROPIC_API_KEY is not set");
+  if (!draftConfigured()) throw new Error("No AI key — add OPENAI_API_KEY (or ANTHROPIC_API_KEY) to .env");
   const today = new Date().toISOString().slice(0, 10);
   const user = `Today is ${today}.
 Video slug: ${input.slug}

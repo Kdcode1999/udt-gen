@@ -13,7 +13,7 @@ export async function GET() {
 export async function POST(req: Request, { params }: Ctx) {
   const { slug } = await params;
   if (!isSlug(slug)) return NextResponse.json({ error: "bad slug" }, { status: 400 });
-  if (!draftConfigured()) return NextResponse.json({ error: "ANTHROPIC_API_KEY is missing — add it to the .env file at the repo root and refresh the page" }, { status: 400 });
+  if (!draftConfigured()) return NextResponse.json({ error: "No AI key — add OPENAI_API_KEY (or ANTHROPIC_API_KEY) to the .env file at the repo root" }, { status: 400 });
   const body = (await req.json().catch(() => ({}))) as { brief?: string; lengthSec?: number; title?: string; series?: string };
   const current = readScriptRaw(slug) as { title?: string; series?: string } | null;
   const title = body.title?.trim() || current?.title || slug;

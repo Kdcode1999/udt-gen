@@ -127,7 +127,7 @@ export function Radar() {
 
       {!configured && (
         <div className="mt-4 text-sm text-[var(--red)]">
-          The radar needs the Claude key. Put <code className="mono">ANTHROPIC_API_KEY=…</code> in the <code className="mono">.env</code> file at the repo root (copy <code className="mono">.env.example</code>), then refresh this page.
+          The radar needs an AI key. Put <code className="mono">OPENAI_API_KEY=…</code> (or <code className="mono">ANTHROPIC_API_KEY=…</code>) in the <code className="mono">.env</code> file at the repo root (copy <code className="mono">.env.example</code>), then refresh this page.
         </div>
       )}
       {err && <div className="mt-4 text-sm text-[var(--red)]">{err}</div>}
