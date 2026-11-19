@@ -44,8 +44,12 @@ const elevenlabs = async (text: string, opts: { voiceId: string; modelId: string
     if (/api_key_id_used_as_api_key/.test(body)) {
       throw new Error("ElevenLabs: the value in ELEVENLABS_API_KEY is a key ID, not the key. ElevenLabs shows the real key (it starts with sk_) only once, when you create it: Developers → API Keys → Create API Key, copy the sk_ value into .env, save, then run Voice again.");
     }
+    if (/quota_exceeded|credits? remaining|exceeds your quota/i.test(body)) {
+      const left = body.match(/You have (\d+) credits? remaining/i)?.[1];
+      throw new Error(`ElevenLabs: this month's character quota is used up${left ? ` (${left} left, this run needs more)` : ""}. Options: wait for the monthly reset, upgrade the plan, or pick "edge" as the voice provider in Settings → Voice (free Microsoft voice) and run Voice again.`);
+    }
     if (res.status === 401 || /invalid_api_key|authentication_error/.test(body)) {
-      throw new Error("ElevenLabs rejected the key in ELEVENLABS_API_KEY (invalid or revoked). Create a new key (Developers → API Keys), paste the sk_ value into .env, save, then run Voice again.");
+      throw new Error(`ElevenLabs rejected the key in ELEVENLABS_API_KEY (invalid or revoked). Create a new key (Developers → API Keys), paste the sk_ value into .env, save, then run Voice again. [ElevenLabs said: ${body.slice(0, 160)}]`);
     }
     throw new Error(`ElevenLabs ${res.status}: ${body}`);
   }
