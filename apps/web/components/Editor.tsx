@@ -276,6 +276,7 @@ export const Editor: React.FC<{ slug: string; initial: unknown }> = ({ slug, ini
                 <Text label="Model" value={script.voice?.modelId as string | undefined} onChange={(v) => setScript({ ...script, voice: { ...(script.voice ?? {}), modelId: v } })} placeholder="eleven_multilingual_v2" />
                 <Num label="Stability" value={script.voice?.stability as number | undefined} onChange={(v) => setScript({ ...script, voice: { ...(script.voice ?? {}), stability: v } })} step={0.05} min={0} max={1} placeholder="0.45" />
                 <Num label="Similarity" value={script.voice?.similarity as number | undefined} onChange={(v) => setScript({ ...script, voice: { ...(script.voice ?? {}), similarity: v } })} step={0.05} min={0} max={1} placeholder="0.8" />
+                <Num label="Pace" value={script.voice?.speed as number | undefined} onChange={(v) => setScript({ ...script, voice: { ...(script.voice ?? {}), speed: v } })} step={0.05} min={0.7} max={1.2} placeholder="1.15" />
                 <Num label="Speed" value={script.voice?.speed as number | undefined} onChange={(v) => setScript({ ...script, voice: { ...(script.voice ?? {}), speed: v } })} step={0.05} min={0.7} max={1.2} placeholder="1.0" />
               </Row>
             </Section>

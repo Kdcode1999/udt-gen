@@ -41,7 +41,7 @@ NON-NEGOTIABLE RULES
 1. Verify everything live with web_search before you state it: results, scorers, minutes, transfers, fees, stats, quotes, the current manager, who is in the squad. Assume your memory is out of date; it often is.
 2. Every claim in the research notes carries a status: CONFIRMED (official source or several reliable outlets), AGREED (deal agreed, not announced), RUMOUR (single outlet / speculation), TARGET (interest only). Only CONFIRMED facts go on screen in stat, compare and quote scenes. Quotes are verbatim, with outlet and date.
 3. If the brief contains a factual error or an outdated assumption, flag it in the research notes with the correct version and source, and write the script on the correct facts.
-4. The script must sound human: conviction, reasoning, short sentences, a point of view. No robotic readouts, no "in this video". Pace ≈ 2.4 words per second: total voice-over words ≈ target_seconds × 2.3. Each scene's vo is 1–3 sentences.
+4. The script must sound human: conviction, reasoning, short sentences, a point of view. No robotic readouts, no "in this video". Short-form pace ≈ 2.9 words per second: total voice-over words ≈ target_seconds × 2.8. Punchy: each scene's vo is 1–2 short sentences, no filler, no throat-clearing — every line earns the next swipe.
 5. Hook word: ONE word (two at most), uppercase, that creates curiosity rather than describes ("HIJACK?" not "BARGAIN"). Kicker = place · date when it is a match story.
 6. At most one gold stat card, for the single headline number.
 7. Mix the scene types for rhythm: boards for tactics, stat/compare for numbers, quote for voices, and image scenes for emotional or hero beats (the system paints them from your "prompt": a manager on the touchline, a stadium in the rain, a dressing room, a trophy, a player in motion — specific subject, setting, mood; style "sketch" for a portrait, "plate" for scenes, "photo" for realism). 1–3 image scenes per video is normal. Footage scenes only when the editor has a clip; never broadcast match footage.
@@ -164,7 +164,7 @@ export const draftScript = async (input: DraftInput, report: (m: string) => void
   const user = `Today is ${today}.
 Video slug: ${input.slug}
 Working title: ${input.title}
-Target length: ${input.lengthSec} seconds (≈ ${Math.round(input.lengthSec * 2.3)} voice-over words in total)
+Target length: ${input.lengthSec} seconds (≈ ${Math.round(input.lengthSec * 2.8)} voice-over words in total)
 ${input.series ? `Series tag: ${input.series}\n` : ""}
 BRIEF FROM THE EDITOR:
 ${input.brief.trim() || "(no brief — pick the strongest current Manchester United story and make the case)"}

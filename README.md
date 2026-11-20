@@ -90,7 +90,7 @@ modal run worker/modal_app.py --slug my-video      # uploads the folder, voices 
 ```
 
 Every scene accepts `vo` (the spoken line), `duration` (seconds, minimum), `hold` (extra seconds after the voice), `sfx` (`whoosh | hit | tick | riser | none`) and `captions: false`.
-Scene length = voice length + 0.45 s, never shorter than the type's floor.
+Scene length = voice length + 0.25 s, never shorter than the type's floor. Voice pace defaults to 1.15× (`UTD_VOICE_SPEED`, or Settings → Voice → Pace per video).
 
 | type | fields | notes |
 |---|---|---|

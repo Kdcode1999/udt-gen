@@ -22,18 +22,18 @@ export type Timeline = {
   scenes: TimedScene[];
 };
 
-const WORDS_PER_SECOND = 2.6; // conversational VO pace used for estimates
-const TAIL_SECONDS = 0.45; // breathing room after the last word
+const WORDS_PER_SECOND = 3.0; // short-form VO pace (voice at ~1.15×) used for estimates
+const TAIL_SECONDS = 0.25; // breathing room after the last word — kept tight for short-form
 
 const MIN_SECONDS: Record<Scene["type"], number> = {
-  hook: 2.2,
-  stat: 3.0,
-  quote: 3.5,
-  compare: 4.0,
+  hook: 1.8,
+  stat: 2.6,
+  quote: 3.0,
+  compare: 3.5,
   board: 3.0,
-  image: 3.0,
+  image: 2.4,
   footage: 3.0,
-  cta: 3.0,
+  cta: 2.5,
 };
 
 export const splitWords = (text: string): string[] =>

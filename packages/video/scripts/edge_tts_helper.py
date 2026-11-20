@@ -16,9 +16,10 @@ async def main() -> None:
     import edge_tts  # type: ignore
 
     voice, out = sys.argv[1], sys.argv[2]
+    rate = sys.argv[3] if len(sys.argv) > 3 else "+0%"
     text = sys.stdin.read().strip()
     proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
-    comm = edge_tts.Communicate(text, voice, proxy=proxy, boundary="WordBoundary")
+    comm = edge_tts.Communicate(text, voice, rate=rate, proxy=proxy, boundary="WordBoundary")
     words = []
     with open(out, "wb") as f:
         async for chunk in comm.stream():

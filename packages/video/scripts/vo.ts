@@ -13,6 +13,10 @@ import { estimateSpeechSeconds, estimateWordTimes, splitWords } from "../src/tim
 import type { VoManifest, VoSceneEntry } from "../src/schema";
 import { hashText, loadScript, loadVo, log, parseArgs, saveVo, videoDir } from "./lib";
 
+/** Voice pace for short-form (1.0 = the voice's natural speed). Script voice.speed wins, then UTD_VOICE_SPEED, then 1.15. */
+const paceOf = (speed?: number) => Math.min(1.2, Math.max(0.7, speed ?? (Number(process.env.UTD_VOICE_SPEED) || 1.15)));
+const edgeRate = (pace: number) => `${pace >= 1 ? "+" : ""}${Math.round((pace - 1) * 100)}%`;
+
 type Word = { w: string; s: number; e: number };
 type Synth = { audio: Buffer; words: Word[]; duration?: number };
 
@@ -32,7 +36,7 @@ const elevenlabs = async (text: string, opts: { voiceId: string; modelId: string
         similarity_boost: opts.similarity ?? 0.8,
         style: opts.style ?? 0.2,
         use_speaker_boost: true,
-        speed: opts.speed ?? 1.0,
+        speed: paceOf(opts.speed),
       },
     }),
   });
@@ -111,7 +115,7 @@ const mergeTokens = (text: string, words: Word[]): Word[] => {
   return merged.length >= Math.ceil(scriptWords.length * 0.7) ? merged : words;
 };
 
-const edgePython = async (text: string, voice: string): Promise<Synth> => {
+const edgePython = async (text: string, voice: string, rate = "+0%"): Promise<Synth> => {
   const { spawnSync } = await import("node:child_process");
   const os = await import("node:os");
   const { fileURLToPath } = await import("node:url");
@@ -120,7 +124,7 @@ const edgePython = async (text: string, voice: string): Promise<Synth> => {
   const candidates = process.platform === "win32" ? ["python", "py", "python3"] : ["python3", "python"];
   let lastErr = "";
   for (const py of candidates) {
-    const r = spawnSync(py, [helper, voice, tmp], { input: text, encoding: "utf8", timeout: 90000 });
+    const r = spawnSync(py, [helper, voice, tmp, rate], { input: text, encoding: "utf8", timeout: 90000 });
     if (r.error) {
       lastErr = String(r.error.message);
       continue;
@@ -136,16 +140,16 @@ const edgePython = async (text: string, voice: string): Promise<Synth> => {
   throw new Error(`edge voice failed in Node and Python. Install the fallback with: pip install edge-tts\n${lastErr}`);
 };
 
-const edge = async (text: string, voice: string): Promise<Synth> => {
+const edge = async (text: string, voice: string, rate = "+0%"): Promise<Synth> => {
   try {
-    return await edgeNode(text, voice);
+    return await edgeNode(text, voice, rate);
   } catch (e) {
     log(`edge (node) failed: ${(e as Error).message.split("\n")[0]} → trying python edge-tts`);
-    return edgePython(text, voice);
+    return edgePython(text, voice, rate);
   }
 };
 
-const edgeNode = async (text: string, voice: string): Promise<Synth> => {
+const edgeNode = async (text: string, voice: string, rate = "+0%"): Promise<Synth> => {
   const { MsEdgeTTS, OUTPUT_FORMAT } = await import("msedge-tts");
   let agent: import("node:http").Agent | undefined;
   const proxy = process.env.HTTPS_PROXY ?? process.env.https_proxy;
@@ -156,7 +160,7 @@ const edgeNode = async (text: string, voice: string): Promise<Synth> => {
   const tts = new MsEdgeTTS({ agent, connectionTimeoutMs: 20000, synthesisTimeoutMs: 60000 });
   const locale = voice.match(/^([a-z]{2,3}-[A-Z]{2,})/)?.[1] ?? "en-GB";
   await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3, { wordBoundaryEnabled: true, sentenceBoundaryEnabled: false, voiceLocale: locale });
-  const { audioStream, metadataStream } = tts.toStream(text);
+  const { audioStream, metadataStream } = tts.toStream(text, { rate });
   const chunks: Buffer[] = [];
   const words: Word[] = [];
   const metaDone = new Promise<void>((resolve) => {
@@ -241,7 +245,8 @@ const main = async () => {
       delete manifest.scenes[key];
       continue;
     }
-    const hash = hashText(`${provider}|${voiceId}|${modelId}|${text}`);
+    const pace = paceOf(script.voice?.speed);
+    const hash = hashText(`${provider}|${voiceId}|${modelId}|${pace}|${text}`);
     const prev = manifest.scenes[key];
     const file = `vo/scene-${String(i + 1).padStart(2, "0")}.mp3`;
     const exists = prev?.file ? fs.existsSync(path.join(dir, prev.file)) : provider === "estimate";
@@ -257,7 +262,7 @@ const main = async () => {
       entry = { duration: d, words: estimateWordTimes(text, d), text, hash, estimated: true };
     } else {
       log(`scene ${i + 1}/${script.scenes.length} → ${provider} (${text.length} chars)`);
-      const synth = provider === "elevenlabs" ? await elevenlabs(text, { ...script.voice, voiceId, modelId }) : await edge(text, voiceId);
+      const synth = provider === "elevenlabs" ? await elevenlabs(text, { ...script.voice, voiceId, modelId }) : await edge(text, voiceId, edgeRate(pace));
       fs.writeFileSync(path.join(dir, file), synth.audio);
       const meta = await parseBuffer(synth.audio, { mimeType: "audio/mpeg" });
       const lastWord = synth.words.length ? synth.words[synth.words.length - 1].e : 0;
