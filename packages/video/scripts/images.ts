@@ -349,7 +349,8 @@ const main = async () => {
       const { png, note } = await generateSafe(await withCurrency(subject, dir, sc.person), style, "1024x1536");
       fs.writeFileSync(path.join(dir, file), png);
       sc.src = file;
-      if (!sc.source) sc.source = `AI illustration${note ? " · " + note : ""}`;
+      if (sc.source?.startsWith("AI illustration")) delete sc.source;
+      void note;
       made++;
       save();
     }

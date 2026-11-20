@@ -147,6 +147,7 @@ export const Vignette: React.FC<{ brand: Brand; top?: number; bottom?: number }>
 
 /** Small source attribution, bottom-right inside the safe zone. */
 export const SourceTag: React.FC<{ brand: Brand; text?: string }> = ({ brand, text }) => {
+  if (!text || /^AI illustration/i.test(text)) return null; // generated pictures carry no on-screen tag
   if (!text) return null;
   return (
     <div
